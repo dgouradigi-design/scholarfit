@@ -1,0 +1,206 @@
+import Link from "next/link";
+import Chat from "@/components/Chat";
+import { CountryCarousel, HeroGlobe, LiveStats } from "@/components/HomeLive";
+import Icon from "@/components/Icon";
+import Offers from "@/components/Offers";
+import Reveal from "@/components/Reveal";
+import Support from "@/components/Support";
+
+const STEPS = [
+  { n: "01", icon: "user", t: "Réponds à 5 questions", d: "Niveau, nationalité, domaine, pays visés, langues. Deux minutes, sans compte." },
+  { n: "02", icon: "star", t: "Découvre ton score", d: "Chaque bourse reçoit un score selon ton profil, avec ce qui joue pour toi et ce qui manque." },
+  { n: "03", icon: "file", t: "Prépare ton dossier", d: "Conditions, documents à fournir, lien officiel, CV et lettre adaptés à la bourse." },
+  { n: "04", icon: "people", t: "Postule, seul ou accompagné", d: "Tu envoies toi-même, ou un conseiller t'aide à monter et vérifier le dossier." },
+];
+
+const FAQ = [
+  { q: "La recherche est-elle gratuite ?", a: "Oui. Le questionnaire, le score, la liste des documents, le CV, la lettre et le suivi sont gratuits. Seul l'accompagnement par un conseiller est payant (Standard 15 000 F CFA, Premium 35 000 F CFA)." },
+  { q: "D'où viennent les bourses ?", a: "Elles sont collectées dans le monde entier sur les sites officiels (ministères, universités, fondations), puis vérifiées. Chaque fiche renvoie à la page d'origine, qui fait toujours foi." },
+  { q: "Que se passe-t-il quand une date limite est passée ?", a: "La bourse est signalée comme clôturée et, quand c'est possible, on indique la date attendue de la prochaine session. Les bourses qui ferment bientôt passent en tête." },
+  { q: "Pourquoi créer un compte ?", a: "Pour voir ton score sur chaque bourse, enregistrer tes candidatures, recevoir les rappels de dates limites et demander un accompagnement." },
+  { q: "Que devient mon profil ?", a: "Il sert uniquement au matching et à la préparation de tes documents. Il n'est jamais vendu, et tu peux supprimer ton compte à tout moment." },
+];
+
+export default function Home() {
+  return (
+    <div className="overflow-x-hidden">
+      {/* Héros : globe du monde entier */}
+      <section className="relative">
+        <div className="bg-grid pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-6 px-4 pb-10 pt-10 sm:px-6 lg:grid-cols-[1fr_1.05fr] lg:pt-14">
+          <div className="lg:py-16">
+            <Reveal>
+              <span className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-mint animate-pulse-dot" /> Bourses du monde entier · mises à jour en continu
+              </span>
+            </Reveal>
+            <Reveal delay={80}>
+              <h1 className="mt-6 text-[2.8rem] leading-[1.02] sm:text-[4.2rem]">
+                La bourse qui te correspond, <span className="accent">où qu&apos;elle soit.</span>
+              </h1>
+            </Reveal>
+            <Reveal delay={160}>
+              <p className="mt-6 max-w-lg text-base text-muted sm:text-lg">
+                Réponds à cinq questions. ScholarFit compare ton profil aux bourses ouvertes dans tous les pays, te donne un score pour chacune et la liste exacte de ce qu&apos;il faut fournir.
+              </p>
+            </Reveal>
+            <Reveal delay={240}>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link href="/questionnaire" className="btn-primary">Trouver mes bourses <Icon name="arrow" /></Link>
+                <Link href="/bourses" className="btn-ghost">Voir toutes les bourses</Link>
+              </div>
+              <p className="mt-4 text-xs text-muted">Gratuit, sans compte pour commencer.</p>
+            </Reveal>
+          </div>
+          <Reveal delay={120} className="relative">
+            <HeroGlobe />
+          </Reveal>
+        </div>
+        <div className="relative mx-auto max-w-6xl px-4 pb-14 sm:px-6">
+          <Reveal><LiveStats /></Reveal>
+        </div>
+      </section>
+
+      {/* Pays */}
+      <section className="border-y border-line bg-surface py-10">
+        <div className="mx-auto mb-5 flex max-w-6xl flex-wrap items-end justify-between gap-3 px-4 sm:px-6">
+          <div>
+            <p className="eyebrow">Par pays d&apos;études</p>
+            <h2 className="mt-2 text-2xl sm:text-3xl">Où partir, et combien de bourses t&apos;attendent.</h2>
+          </div>
+          <Link href="/bourses" className="text-sm font-semibold text-brand hover:underline">Tous les pays →</Link>
+        </div>
+        <CountryCarousel />
+        <p className="mx-auto mt-3 max-w-6xl px-4 text-[11px] text-muted sm:px-6">Le total compte les bourses ouvertes dans ce pays, y compris les programmes valables dans plusieurs pays.</p>
+      </section>
+
+      {/* Parcours */}
+      <section id="comment" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6">
+        <Reveal>
+          <p className="eyebrow">Comment ça marche</p>
+          <h2 className="mt-3 max-w-2xl text-3xl sm:text-5xl">De ton profil à ton dossier, <span className="accent">pas à pas.</span></h2>
+        </Reveal>
+        <ol className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} as="li" delay={i * 90} className="card group relative overflow-hidden p-6 transition hover:-translate-y-1 hover:border-brand/40">
+              <span className="font-mono text-xs text-brand">{s.n}</span>
+              <span className="mt-6 grid h-11 w-11 place-items-center rounded-2xl bg-brand-soft text-brand transition group-hover:scale-110"><Icon name={s.icon} className="h-5 w-5" /></span>
+              <p className="mt-5 font-serif text-xl font-semibold">{s.t}</p>
+              <p className="mt-2 text-sm text-muted">{s.d}</p>
+            </Reveal>
+          ))}
+        </ol>
+        <Reveal delay={200} className="mt-10">
+          <div className="flex flex-col items-start justify-between gap-5 rounded-3xl border border-line bg-[linear-gradient(120deg,color-mix(in_srgb,var(--color-mint)_14%,var(--color-card)),var(--color-card)_55%,color-mix(in_srgb,var(--color-gold)_12%,var(--color-card)))] p-6 sm:flex-row sm:items-center sm:p-8">
+            <div>
+              <p className="font-serif text-2xl font-semibold">Prêt ? Le questionnaire prend deux minutes.</p>
+              <p className="mt-1 text-sm text-muted">Tu vois tes premières bourses tout de suite. Ton score complet s&apos;affiche avec un compte gratuit.</p>
+            </div>
+            <Link href="/questionnaire" className="btn-primary shrink-0">Commencer le questionnaire <Icon name="arrow" /></Link>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* Fiche bourse */}
+      <section className="border-y border-line bg-surface">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2">
+          <Reveal>
+            <p className="eyebrow">Chaque bourse, en clair</p>
+            <h2 className="mt-3 text-3xl sm:text-5xl">Les conditions, les pièces, <span className="accent">le bon lien.</span></h2>
+            <p className="mt-4 max-w-lg text-muted">Pour chaque bourse : qui peut postuler, ce qu&apos;elle finance, les documents à préparer, les étapes pour candidater et le lien officiel vérifié. Les dates limites proches sont signalées en priorité.</p>
+            <Link href="/bourses" className="btn-ghost mt-8">Parcourir les bourses <Icon name="arrow" /></Link>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="card overflow-hidden shadow-[0_40px_80px_-40px_rgba(0,0,0,0.5)]">
+              <div className="flex items-center justify-between border-b border-line px-5 py-4">
+                <span className="text-sm font-semibold">Bourse d&apos;excellence d&apos;un gouvernement</span>
+                <span className="rounded-full bg-warm-soft px-2.5 py-0.5 text-[11px] font-semibold text-warm">J-12 · urgent</span>
+              </div>
+              <div className="grid gap-px bg-line sm:grid-cols-2">
+                <div className="bg-card p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">Conditions</p>
+                  <ul className="mt-3 space-y-2 text-sm">
+                    {["Moins de 30 ans", "Licence obtenue", "Nationalité hors UE"].map((x) => <li key={x} className="flex gap-2"><Icon name="check" className="mt-0.5 h-4 w-4 text-brand" />{x}</li>)}
+                  </ul>
+                </div>
+                <div className="bg-card p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">Documents</p>
+                  <ul className="mt-3 space-y-2 text-sm">
+                    {["CV", "Lettre de motivation", "Relevés de notes"].map((x) => <li key={x} className="flex gap-2"><Icon name="file" className="mt-0.5 h-4 w-4 text-gold" />{x}</li>)}
+                  </ul>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
+                <span className="flex items-center gap-2 text-xs text-muted"><span className="h-2 w-2 rounded-full bg-ok" />Lien officiel vérifié</span>
+                <span className="text-xs text-muted">Exemple</span>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Offres */}
+      <section id="offres" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6">
+        <Reveal>
+          <p className="eyebrow">Postuler seul ou accompagné</p>
+          <h2 className="mt-3 max-w-2xl text-3xl sm:text-5xl">Tu choisis <span className="accent">comment tu avances.</span></h2>
+          <p className="mt-4 max-w-xl text-muted">Les outils sont gratuits. Si tu veux qu&apos;un conseiller monte le dossier avec toi, deux formules d&apos;accompagnement.</p>
+        </Reveal>
+        <Reveal delay={120} className="mt-12"><Offers /></Reveal>
+      </section>
+
+      {/* Assistant */}
+      <section id="assistant" className="scroll-mt-20 border-y border-line bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+          <Reveal>
+            <p className="eyebrow">Une question précise ?</p>
+            <h2 className="mt-3 max-w-2xl text-3xl sm:text-5xl">Demande à l&apos;assistant, <span className="accent">avec tes mots.</span></h2>
+            <p className="mt-4 max-w-xl text-muted">Il cherche uniquement dans les bourses de la plateforme et renvoie toujours vers la page officielle.</p>
+          </Reveal>
+          <Reveal delay={120} className="mt-10"><Chat /></Reveal>
+        </div>
+      </section>
+
+      {/* Questions */}
+      <section id="questions" className="mx-auto grid max-w-6xl scroll-mt-20 gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.5fr]">
+        <Reveal>
+          <p className="eyebrow">Questions fréquentes</p>
+          <h2 className="mt-3 text-3xl sm:text-4xl">Avant de te lancer.</h2>
+        </Reveal>
+        <div className="space-y-3">
+          {FAQ.map((f, i) => (
+            <Reveal key={f.q} delay={i * 60}>
+              <details className="card group p-5 open:border-brand/40">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+                  {f.q}
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line text-muted transition group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-3 text-sm text-muted">{f.a}</p>
+              </details>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Appel final */}
+      <section id="soutenir" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6">
+        <Reveal><Support compact /></Reveal>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-[2rem] border border-line bg-card px-6 py-16 text-center sm:px-14">
+            <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-mint/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-10 h-60 w-60 rounded-full bg-gold/20 blur-3xl" />
+            <h2 className="relative mx-auto max-w-2xl text-3xl sm:text-5xl">Ta prochaine rentrée se prépare <span className="accent">maintenant.</span></h2>
+            <p className="relative mx-auto mt-4 max-w-md text-muted">Cinq questions, et tu sais où postuler, avant quelle date et avec quels documents.</p>
+            <div className="relative mt-8 flex flex-wrap justify-center gap-3">
+              <Link href="/questionnaire" className="btn-primary">Trouver mes bourses <Icon name="arrow" /></Link>
+              <Link href="/connexion?mode=inscription" className="btn-ghost">Créer un compte</Link>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+    </div>
+  );
+}

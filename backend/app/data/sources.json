@@ -1,0 +1,104 @@
+[
+  {
+    "name": "Données d'exemple",
+    "url": "file://scholarships.json",
+    "method": "manual",
+    "connector": "json",
+    "path": "scholarships.json",
+    "enabled": true,
+    "trusted": false,
+    "note": "98 opportunités réelles sur tous les continents (82 bourses, 10 stages, 6 conférences), montants et dates INDICATIFS, à vérifier avant production."
+  },
+  {
+    "name": "Découverte IA (monde entier)",
+    "url": "https://api.anthropic.com",
+    "method": "ai",
+    "connector": "ai_discovery",
+    "zones_per_run": 5,
+    "frequency_hours": 24,
+    "enabled": true,
+    "note": "Claude cherche sur le web les bourses de 5 zones du monde par passage (24 zones au total : bourses sur tous les continents, stages et conférences). Liens testés avant enregistrement, fiches « à vérifier ». Nécessite ANTHROPIC_API_KEY."
+  },
+  {
+    "name": "Afri-Carrières",
+    "url": "https://afri-carrieres.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 30,
+    "frequency_hours": 24,
+    "enabled": true,
+    "note": "Agrégateur d'offres pour l'Afrique (bourses, stages, emplois, concours). Flux /feed/ essayé d'abord, sinon les annonces de la page d'accueil. Le lien vers le site officiel est repris de chaque annonce. robots.txt respecté ; lire les CGU et demander un partenariat si possible."
+  },
+  {
+    "name": "Opportunities For Africans",
+    "url": "https://www.opportunitiesforafricans.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 30,
+    "frequency_hours": 24,
+    "enabled": true,
+    "note": "Bourses, stages, conférences et concours pour jeunes Africains."
+  },
+  {
+    "name": "Opportunity Desk",
+    "url": "https://opportunitydesk.org",
+    "method": "page",
+    "connector": "site",
+    "limit": 30,
+    "frequency_hours": 24,
+    "enabled": true,
+    "note": "Bourses, stages, conférences et programmes jeunesse dans le monde entier."
+  },
+  {
+    "name": "Scholars4Dev",
+    "url": "https://www.scholars4dev.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 20,
+    "frequency_hours": 48,
+    "enabled": true,
+    "kind": "bourse",
+    "note": "Bourses internationales pour étudiants de pays en développement."
+  },
+  {
+    "name": "After School Africa",
+    "url": "https://www.afterschoolafrica.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 20,
+    "frequency_hours": 48,
+    "enabled": true,
+    "note": "Bourses, stages et conférences pour étudiants africains."
+  },
+  {
+    "name": "Conference Index (conférences étudiantes)",
+    "url": "https://conferenceindex.org",
+    "method": "page",
+    "connector": "site",
+    "limit": 20,
+    "frequency_hours": 72,
+    "enabled": false,
+    "kind": "conference",
+    "note": "Annuaire de conférences académiques. Désactivé : très volumineux, à filtrer par domaine avant d'activer (paramètre paths)."
+  },
+  {
+    "name": "EURAXESS (offres de doctorat, flux RSS)",
+    "url": "https://euraxess.ec.europa.eu/jobs/feed",
+    "method": "rss",
+    "connector": "rss",
+    "limit": 20,
+    "enabled": false,
+    "note": "Exemple de connecteur RSS. Vérifier l'URL exacte du flux et les conditions d'utilisation avant d'activer."
+  },
+  {
+    "name": "Campus France : annuaire Campus Bourses",
+    "url": "https://www.campusfrance.org/fr/bourses-etudiants-internationaux",
+    "method": "page",
+    "connector": "page_list",
+    "link_selector": "a",
+    "link_pattern": "/fr/.*bourse",
+    "limit": 20,
+    "enabled": false,
+    "note": "Exemple de connecteur liste + fiches. Lire robots.txt et les CGU, et privilégier un partenariat."
+  }
+]

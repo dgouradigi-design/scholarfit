@@ -1,0 +1,45 @@
+# Lance toute la plateforme : PostgreSQL + API + site.
+#   docker compose up --build
+# Site : http://localhost:3000   API : http://localhost:8000/docs
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bourses
+      POSTGRES_PASSWORD: bourses
+      POSTGRES_DB: bourses
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bourses"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://bourses:bourses@db:5432/bourses
+      SECRET_KEY: ${SECRET_KEY:-change-moi-en-production-avec-une-longue-chaine}
+      CORS_ORIGINS: http://localhost:3000
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ADMIN_EMAILS: admin@example.org
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    environment:
+      API_URL_INTERNAL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
