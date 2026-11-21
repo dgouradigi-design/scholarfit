@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..ai.chat import extract_criteria, next_question, summarize_understanding
 from ..db import get_db
+from ..i18n import t
 from ..matching import Criteria, rank
 from ..models import Scholarship, User
 from ..quota import can_use_ai
@@ -36,7 +37,7 @@ def chat(body: ChatIn, user: User | None = Depends(optional_user), db: Session =
     understood = summarize_understanding(criteria)
 
     if question:
-        reply = (f"J'ai compris : {understood}. " if understood else "") + question
+        reply = (t(f"J'ai compris : {understood}. ", f"Here is what I understood: {understood}. ") if understood else "") + question
         return ChatOut(reply=reply, criteria=criteria, missing=missing,
                        quick_replies=[QuickReply(**r) for r in replies], ai_used=ai_used)
 
@@ -55,16 +56,26 @@ def chat(body: ChatIn, user: User | None = Depends(optional_user), db: Session =
 
     shown = results if user else results[:ANONYMOUS_LIMIT]
     if not results:
-        reply = (f"J'ai compris : {understood}. Je n'ai trouvé aucune bourse ouverte avec ces critères "
-                 f"({excluded} exclues). Essaie d'élargir les pays ou d'accepter un financement partiel.")
-        quick = [QuickReply(label="N'importe quel pays", value="peu importe le pays"),
-                 QuickReply(label="Financement partiel accepté", value="financement partiel accepté")]
+        reply = t(f"J'ai compris : {understood}. Aucune bourse ouverte ne correspond à ces critères "
+                  f"({excluded} exclues). Élargissez les pays ou acceptez un financement partiel.",
+                  f"Here is what I understood: {understood}. No open scholarship matches these criteria "
+                  f"({excluded} excluded). Try more countries or accept partial funding.")
+        quick = [QuickReply(label=t("N'importe quel pays", "Any country"), value=t("peu importe le pays", "any country")),
+                 QuickReply(label=t("Financement partiel accepté", "Partial funding is fine"),
+                            value=t("financement partiel accepté", "partial funding is fine"))]
     else:
-        reply = f"J'ai compris : {understood}. Voici {len(results)} bourse(s) qui te correspondent, triées par pertinence et date limite."
+        reply = t(f"J'ai compris : {understood}. Voici {len(results)} bourse(s) qui vous correspondent, triées par pertinence et date limite.",
+                  f"Here is what I understood: {understood}. Here are {len(results)} scholarship(s) that match your profile, "
+                  "sorted by relevance and deadline.")
         if not user and len(results) > ANONYMOUS_LIMIT:
-            reply += f" Crée un compte gratuit pour voir les {len(results) - ANONYMOUS_LIMIT} autres et préparer ton dossier."
-        reply += " Tu peux affiner : « seulement les bourses complètes », « date limite après mars »…"
-        quick = [QuickReply(label="Seulement financement complet", value="seulement les bourses complètes"),
-                 QuickReply(label="Date limite après mars", value="date limite après mars")]
+            more = len(results) - ANONYMOUS_LIMIT
+            reply += t(f" Créez un compte gratuit pour voir les {more} autres et préparer votre dossier.",
+                       f" Create a free account to see the other {more} and prepare your application.")
+        reply += t(" Vous pouvez affiner : « seulement les bourses complètes », « date limite après mars »…",
+                   " You can refine: \"fully funded only\", \"deadline after March\"…")
+        quick = [QuickReply(label=t("Seulement financement complet", "Fully funded only"),
+                            value=t("seulement les bourses complètes", "fully funded only")),
+                 QuickReply(label=t("Date limite après mars", "Deadline after March"),
+                            value=t("date limite après mars", "deadline after March"))]
     return ChatOut(reply=reply, criteria=criteria, missing=[], quick_replies=quick,
                    results=[match_out(m) for m in shown], ai_used=ai_used)

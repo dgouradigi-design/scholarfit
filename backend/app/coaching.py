@@ -81,20 +81,20 @@ def default_plan(coaching: Coaching, today: date | None = None) -> list[Coaching
         return max(deadline - timedelta(days=days_before), today + timedelta(days=minimum))
 
     plan: list[tuple[str, str, date]] = [
-        ("Premier rendez-vous avec ton conseiller", "Faire le point sur ton projet, tes bourses visées et ton calendrier.", today + timedelta(days=7)),
-        ("Compléter ton profil", "Un profil complet donne de meilleurs résultats de matching et aide ton conseiller.", today + timedelta(days=10)),
+        ("Premier rendez-vous avec votre conseiller", "Faire le point sur votre projet, vos bourses visées et votre calendrier.", today + timedelta(days=7)),
+        ("Compléter votre profil", "Un profil complet donne de meilleurs résultats de matching et aide votre conseiller.", today + timedelta(days=10)),
     ]
     if not apps or "choix_bourses" in needs:
         plan.append(("Choisir 3 à 5 bourses visées", "Les ajouter au suivi des candidatures depuis « Mes bourses ».", at(45, 14)))
     if "langue" in needs:
         plan.append(("Passer ou planifier le test de langue", "Vérifier le score exigé et les dates de session.", at(40, 14)))
-    plan.append(("Faire relire ton CV", "Partager la version améliorée avec ton conseiller.", at(30, 14)))
+    plan.append(("Faire relire votre CV", "Partager la version améliorée avec votre conseiller.", at(30, 14)))
     if "recommandations" in needs or any("recommandation" in (a.scholarship.requirements or []) for a in apps):
-        plan.append(("Demander les lettres de recommandation", "Prévenir tes professeurs au moins 3 semaines avant la date limite.", at(28, 14)))
-    plan.append(("Faire relire ta lettre de motivation", "Une lettre par bourse, adaptée à son programme.", at(21, 18)))
+        plan.append(("Demander les lettres de recommandation", "Prévenir vos professeurs au moins 3 semaines avant la date limite.", at(28, 14)))
+    plan.append(("Faire relire votre lettre de motivation", "Une lettre par bourse, adaptée à son programme.", at(21, 18)))
     plan.append(("Vérifier le dossier complet et l'envoyer", "Utiliser « Vérifier le dossier » dans le suivi, puis envoyer avant la date limite.", at(3, 21)))
     if "entretien" in needs:
-        plan.append(("Préparer l'entretien", "Simulation avec ton conseiller : présentation, projet, questions fréquentes.", at(-14, 28)))
+        plan.append(("Préparer l'entretien", "Simulation avec votre conseiller : présentation, projet, questions fréquentes.", at(-14, 28)))
     if "visa" in needs:
         plan.append(("Préparer le visa et l'installation", "Liste des pièces, logement, assurance.", at(-30, 35)))
     plan.sort(key=lambda t: t[2])
@@ -114,7 +114,7 @@ def assign(db: Session, coaching: Coaching, advisor: Advisor) -> None:
         coaching.steps = default_plan(coaching)
     db.flush()
     notify(db, coaching.student, f"acc-{coaching.id}-attribue-{advisor.id}",
-           f"{advisor.display_name} va t'accompagner dans tes candidatures. Ton plan d'étapes est prêt.")
+           f"{advisor.display_name} va vous accompagner dans vos candidatures. Votre plan d'étapes est prêt.")
     p = coaching.student.profile
     name = p.full_name if p is not None and p.full_name else coaching.student.email
     notify(db, advisor.user, f"acc-{coaching.id}-nouveau-{advisor.id}", f"Nouveau candidat à accompagner : {name}.")

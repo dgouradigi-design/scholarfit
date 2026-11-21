@@ -1,22 +1,29 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { LangProvider } from "@/components/LangProvider";
 import Shell from "@/components/Shell";
+import { getLang, getT } from "@/lib/i18n-server";
 import { THEME_SCRIPT } from "@/lib/theme";
 
-export const metadata: Metadata = {
-  title: { default: "ScholarFit : les bourses d'études qui te correspondent", template: "%s · ScholarFit" },
-  description:
-    "Trouve les bourses d'études auxquelles tu as droit, du bac au doctorat, avec ton dossier préparé : CV amélioré, lettre de motivation et suivi des candidatures.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return {
+    title: { default: t("ScholarFit : les bourses d'études qui vous correspondent"), template: "%s · ScholarFit" },
+    description: t("Trouvez les bourses d'études, stages et conférences auxquels vous avez droit, du bac au doctorat, avec votre dossier préparé et le suivi de vos candidatures."),
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-screen">
-        <Shell>{children}</Shell>
+        <LangProvider lang={lang}>
+          <Shell>{children}</Shell>
+        </LangProvider>
       </body>
     </html>
   );

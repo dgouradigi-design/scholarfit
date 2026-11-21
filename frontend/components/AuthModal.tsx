@@ -2,6 +2,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthPanel, { AuthMode } from "./AuthPanel";
+import { useT } from "@/components/LangProvider";
 
 /**
  * Ouvre la connexion / l'inscription dans une fenêtre par-dessus la page, au lieu de changer de page.
@@ -9,6 +10,7 @@ import AuthPanel, { AuthMode } from "./AuthPanel";
  * (lien partagé, retour arrière, navigateur sans JavaScript).
  */
 export default function AuthModal() {
+  const { t } = useT();
   const path = usePathname();
   const [state, setState] = useState<{ mode: AuthMode; next: string | null } | null>(null);
 
@@ -40,8 +42,8 @@ export default function AuthModal() {
 
   if (!state || path === "/connexion") return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" role="dialog" aria-modal="true" aria-label={state.mode === "inscription" ? "Créer un compte" : "Se connecter"}>
-      <button type="button" aria-label="Fermer" className="animate-fade-in absolute inset-0 bg-[#05060d]/70 backdrop-blur-sm" onClick={() => setState(null)} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" role="dialog" aria-modal="true" aria-label={state.mode === "inscription" ? t("Créer un compte") : t("Se connecter")}>
+      <button type="button" aria-label={t("Fermer")} className="animate-fade-in absolute inset-0 bg-[#05060d]/70 backdrop-blur-sm" onClick={() => setState(null)} />
       <div className="animate-pop-in relative my-auto flex w-full justify-center">
         <AuthPanel key={state.mode} initialMode={state.mode} next={state.next} onClose={() => setState(null)} onSuccess={() => setState(null)} />
       </div>

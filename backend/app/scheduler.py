@@ -1,7 +1,7 @@
 """Collecte automatique pendant que l'API tourne.
 
 Toutes les AUTO_COLLECT_HOURS heures (24 par défaut) : sources dues (dont la découverte par IA),
-expirations, vérification des liens, alertes et rappels. Mettre AUTO_COLLECT_HOURS=0 pour
+expirations, vérification des liens, version anglaise des nouvelles fiches, alertes et rappels. Mettre AUTO_COLLECT_HOURS=0 pour
 désactiver et planifier plutôt « python -m app.cli nightly » (cron, Planificateur de tâches Windows).
 Avec plusieurs instances de l'API, n'activer la collecte que sur une seule.
 """
@@ -24,12 +24,14 @@ def run_cycle() -> dict:
     from .db import SessionLocal
     from .linkcheck import check_links
     from .scrapers.collector import expire_old, run_all
+    from .translate import translate_missing
 
     db = SessionLocal()
     try:
         report = {"sources": run_all(db, only_due=True)}
         report["expirees"] = expire_old(db)
         report["liens"] = check_links(db)
+        report["traductions"] = translate_missing(db, limit=100)
         report["alertes"] = run_alerts(db)
         report["rappels"] = run_reminders(db)
         return report

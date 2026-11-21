@@ -130,20 +130,20 @@ def my_coachings(user: User = Depends(current_user), db: Session = Depends(get_d
 def request_coaching(body: CoachingRequestIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Demande d'accompagnement. Un seul accompagnement ouvert à la fois."""
     if not body.share_consent:
-        raise HTTPException(422, "Ton accord est nécessaire : le conseiller doit voir ton profil, ton CV et tes candidatures pour t'aider.")
+        raise HTTPException(422, "Votre accord est nécessaire : le conseiller doit voir votre profil, votre CV et vos candidatures pour vous aider.")
     if db.scalars(select(Coaching).where(Coaching.student_id == user.id, Coaching.status.in_(svc.ACTIVE))).first():
-        raise HTTPException(409, "Tu as déjà un accompagnement en cours")
+        raise HTTPException(409, "Vous avez déjà un accompagnement en cours")
     unknown = [n for n in body.needs if n not in svc.NEEDS]
     if unknown:
         raise HTTPException(422, f"Besoins inconnus : {unknown}")
     mine = {a.id for a in user.applications}
     if set(body.application_ids) - mine:
-        raise HTTPException(422, "Certaines candidatures ne sont pas dans ton suivi")
+        raise HTTPException(422, "Certaines candidatures ne sont pas dans votre suivi")
     offer = offers.paid_offer(body.offer)
     if offer is None:
-        raise HTTPException(422, "Offre inconnue : choisis standard ou premium (ou postule seul, sans accompagnement)")
+        raise HTTPException(422, "Offre inconnue : choisissez standard ou premium (ou postulez seul, sans accompagnement)")
     if offer["max_scholarships"] and len(body.application_ids) > offer["max_scholarships"]:
-        raise HTTPException(422, f"L'offre {offer['name']} couvre jusqu'à {offer['max_scholarships']} bourses : choisis l'offre Premium ou retire des candidatures.")
+        raise HTTPException(422, f"L'offre {offer['name']} couvre jusqu'à {offer['max_scholarships']} bourses : choisissez l'offre Premium ou retirez des candidatures.")
     c = Coaching(student_id=user.id, goal=body.goal.strip(), needs=body.needs, application_ids=body.application_ids,
                  preferred_language=body.preferred_language, availability=body.availability, share_consent=True,
                  offer=offer["code"], price=offer["price"], currency="XOF", payment_status="a_payer")
@@ -229,7 +229,7 @@ def finish(cid: int, body: CloseIn, user: User = Depends(current_user), db: Sess
         db.add(CoachingMessage(coaching_id=c.id, author_id=user.id, author_role=role, content=body.note.strip(), read_by_advisor=True))
     c.status = "termine"
     c.closed_at = datetime.now(timezone.utc)
-    svc.notify(db, c.student, f"acc-{c.id}-termine", "Ton accompagnement est terminé. Dis-nous ce que tu en as pensé !")
+    svc.notify(db, c.student, f"acc-{c.id}-termine", "Votre accompagnement est terminé. Dites-nous ce que vous en avez pensé !")
     db.commit()
     db.refresh(c)
     return _out(c, role)
@@ -264,7 +264,7 @@ def add_step(cid: int, body: StepIn, user: User = Depends(current_user), db: Ses
     s = CoachingStep(coaching_id=c.id, position=max((x.position for x in c.steps), default=-1) + 1, **body.model_dump())
     db.add(s)
     if role != "candidat":
-        svc.notify(db, c.student, f"acc-etape-{c.id}-{s.position}-ajout", f"Nouvelle étape dans ton accompagnement : « {s.title} ».")
+        svc.notify(db, c.student, f"acc-etape-{c.id}-{s.position}-ajout", f"Nouvelle étape dans votre accompagnement : « {s.title} ».")
     db.commit()
     return s
 
@@ -275,7 +275,7 @@ def update_step(sid: int, body: StepUpdate, user: User = Depends(current_user), 
     _require_open(s.coaching)
     data = body.model_dump(exclude_unset=True)
     if role == "candidat" and set(data) - {"done"}:
-        raise HTTPException(403, "Tu peux cocher une étape ; ton conseiller la modifie")
+        raise HTTPException(403, "Vous pouvez cocher une étape ; votre conseiller la modifie")
     if "done" in data:
         s.done_at = datetime.now(timezone.utc) if data["done"] else None
     for k, v in data.items():
@@ -324,7 +324,7 @@ def propose_meeting(cid: int, body: MeetingIn, user: User = Depends(current_user
         raise HTTPException(422, f"Mode inconnu. Valeurs : {list(svc.MEETING_MODES)}")
     start = body.starts_at if body.starts_at.tzinfo else body.starts_at.replace(tzinfo=timezone.utc)
     if start < datetime.now(timezone.utc):
-        raise HTTPException(422, "Choisis une date à venir")
+        raise HTTPException(422, "Choisissez une date à venir")
     m = CoachingMeeting(coaching_id=c.id, proposed_by="candidat" if role == "candidat" else "conseiller", **body.model_dump())
     db.add(m)
     db.flush()

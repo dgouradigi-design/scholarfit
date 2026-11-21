@@ -11,12 +11,36 @@ import re
 import unicodedata
 from datetime import date
 
+from .. import i18n
+from ..i18n import t as tr
 from ..vocab import COUNTRIES, COUNTRY_KEYWORDS, DOMAIN_KEYWORDS, DOMAINS, LEVELS
 from .client import ask_json
 
 MONTHS = {
     "janvier": 1, "fevrier": 2, "mars": 3, "avril": 4, "mai": 5, "juin": 6, "juillet": 7,
     "aout": 8, "septembre": 9, "octobre": 10, "novembre": 11, "decembre": 12,
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6, "july": 7,
+    "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+}
+# Mots anglais reconnus par l'analyseur hors-ligne (site en anglais)
+DOMAIN_KEYWORDS_EN: dict[str, list[str]] = {
+    "agriculture": ["agricultur", "agronom", "food security"],
+    "arts": ["fine arts", "design", "architecture", "music", "film"],
+    "biologie": ["biology", "life science", "genetics", "ecology"],
+    "chimie": ["chemistry"],
+    "droit": ["law", "legal", "political science", "politics"],
+    "economie": ["economics", "business", "finance", "management", "mba", "accounting", "marketing"],
+    "education": ["education", "teaching"],
+    "energie": ["energy", "environment", "climate", "renewable"],
+    "informatique": ["computer science", "computing", "software", "data science", "artificial intelligence", "cybersecurity", "it "],
+    "ingenierie": ["engineering", "mechanical", "electrical", "civil engineering"],
+    "langues": ["literature", "linguistics", "philosophy", "history", "humanities"],
+    "mathematiques": ["mathematics", "maths", "statistics"],
+    "medecine": ["medicine", "medical", "health", "pharmacy", "nursing", "public health"],
+    "physique": ["physics"],
+    "relations_internationales": ["international relations", "development studies", "humanitarian"],
+    "sciences_sociales": ["sociology", "psychology", "anthropology", "social science"],
+    "journalisme": ["journalism", "communication", "media"],
 }
 
 
@@ -29,7 +53,9 @@ def _find_countries(text: str) -> list[str]:
     t = _norm(text)
     found: list[tuple[int, str]] = []
     for code, words in COUNTRY_KEYWORDS.items():
-        for w in words:
+        for w in [*words, i18n.country_name_en(code, "").lower()]:
+            if not w:
+                continue
             m = re.search(r"(?<![a-z])" + re.escape(_norm(w)) + r"(?![a-z])", t)
             if m:
                 found.append((m.start(), code))
@@ -44,11 +70,11 @@ def parse_rules(message: str, today: date | None = None) -> dict:
     out: dict = {}
 
     # --- niveau visé
-    if re.search(r"doctorat|these|phd|post-?doc|bac\s?\+\s?8", t):
+    if re.search(r"doctorat|these|phd|doctoral|post-?doc|bac\s?\+\s?8", t):
         out["target_level"] = "BAC7"
-    elif re.search(r"\bmaster\b|\bmsc\b|mastere|bac\s?\+\s?5", t):
+    elif re.search(r"\bmasters?\b|\bmsc\b|\bma\b|mastere|postgraduate|bac\s?\+\s?5", t):
         out["target_level"] = "BAC5"
-    elif re.search(r"\blicence\b|bachelor|\bbts\b|bac\s?\+\s?3|apres (le|mon) bac|entrer a l.universite", t):
+    elif re.search(r"\blicence\b|bachelor|undergraduate|\bbts\b|bac\s?\+\s?3|apres (le|mon) bac|entrer a l.universite", t):
         out["target_level"] = "BAC3"
     elif re.search(r"terminale|\bau lycee\b|passe (le|mon) bac", t):
         out["target_level"] = "BAC3"
@@ -61,42 +87,43 @@ def parse_rules(message: str, today: date | None = None) -> dict:
         out["target_level"] = m.group(1).upper()
 
     # --- âge
-    m = re.search(r"\b(1[5-9]|[2-5]\d)\s*ans\b", t)
+    m = re.search(r"\b(1[5-9]|[2-5]\d)\s*(ans|years?)\b", t) or re.search(r"\bi am (1[5-9]|[2-5]\d)\b", t)
     if m:
         out["age"] = int(m.group(1))
 
     # --- nationalité / pays souhaités : ce qui précède « je veux / étudier / partir » = origine
-    split = re.split(r"\b(veux|voudrais|souhaite|aimerais|vise|cherche|partir|aller|etudier en|etudier au|etudier aux)\b", t, maxsplit=1)
+    split = re.split(r"\b(veux|voudrais|souhaite|aimerais|vise|cherche|partir|aller|etudier en|etudier au|etudier aux"
+                     r"|want|would like|looking for|study in|go to)\b", t, maxsplit=1)
     before, after = split[0], "".join(split[1:]) if len(split) > 1 else ""
     origin = _find_countries(before)
     wished = _find_countries(after)
-    if re.search(r"nationalit|je suis [a-z]+(e|ne)?\b", before) or origin:
+    if re.search(r"nationalit|je suis [a-z]+(e|ne)?\b|i am from|i'm from", before) or origin:
         if origin:
             out["nationalities"] = origin[:2]
     if wished:
         out["wished_countries"] = wished
-    if re.search(r"(n.importe quel pays|peu importe le pays|tous les pays|partout)", t):
+    if re.search(r"(n.importe quel pays|peu importe le pays|tous les pays|partout|any country|anywhere)", t):
         out["wished_countries"] = []
 
     # --- domaine
     for code, words in DOMAIN_KEYWORDS.items():
-        if any(re.search(r"(?<![a-z])" + re.escape(_norm(w)), t) for w in words):
+        if any(re.search(r"(?<![a-z])" + re.escape(_norm(w)), t) for w in [*words, *DOMAIN_KEYWORDS_EN.get(code, [])]):
             out["domain"] = code
             break
-    if re.search(r"tous (les )?domaines|peu importe le domaine", t):
+    if re.search(r"tous (les )?domaines|peu importe le domaine|all fields|any field", t):
         out["domain"] = "tous"
     m = re.search(r"\b(" + "|".join(DOMAINS) + r")\b", t)
     if m:
         out["domain"] = m.group(1)
 
     # --- financement
-    if re.search(r"(complete|completes|totale|integrale|tout finance|100 ?%)", t):
+    if re.search(r"(complete|completes|totale|integrale|tout finance|fully funded|full funding|100 ?%)", t):
         out["full_funding_only"] = True
-    if re.search(r"(partielle|partiel|peu importe le financement)", t):
+    if re.search(r"(partielle|partiel|peu importe le financement|partial funding|partially funded)", t):
         out["full_funding_only"] = False
 
     # --- date limite après un mois
-    m = re.search(r"apres (" + "|".join(MONTHS) + r")", t)
+    m = re.search(r"(?:apres|after) (" + "|".join(MONTHS) + r")", t)
     if m:
         month = MONTHS[m.group(1)]
         year = today.year if month >= today.month else today.year + 1
@@ -139,6 +166,7 @@ Tu ne réponds pas à l'étudiant et tu n'inventes aucune bourse : tu remplis se
   résidence n'est pas un pays souhaité.
 - domain : un des codes {', '.join(DOMAINS)}.
 - deadline_after : date AAAA-MM-JJ si l'étudiant veut une date limite après un mois donné.
+- Le message peut être en français ou en anglais.
 - Mets null ou une liste vide pour ce qui n'est pas dit dans le message. Ne devine pas l'âge."""
 
 
@@ -162,47 +190,60 @@ def extract_criteria(message: str, previous: dict, use_ai: bool, today: date | N
     return merged, ai_used
 
 
-QUESTIONS = {
-    "target_level": (
-        "Quel niveau d'études veux-tu financer ?",
-        [("Licence / bachelor", "Je vise une licence"), ("Master", "Je vise un master"),
-         ("Doctorat", "Je vise un doctorat"), ("Après le bac", "Je passe mon bac")],
-    ),
-    "nationalities": (
-        "Quelle est ta nationalité ? (beaucoup de bourses en dépendent)",
-        [("Sénégal", "Je suis sénégalais"), ("Côte d'Ivoire", "Je suis ivoirien"),
-         ("Cameroun", "Je suis camerounais"), ("Maroc", "Je suis du Maroc"), ("France", "Je suis français")],
-    ),
-    "domain": (
-        "Dans quel domaine veux-tu étudier ?",
-        [("Informatique", "informatique"), ("Économie / gestion", "economie"), ("Ingénierie", "ingenierie"),
-         ("Médecine / santé", "medecine"), ("Biologie", "biologie"), ("Tous domaines", "tous domaines")],
-    ),
-    "age": ("Quel âge as-tu ? Certaines bourses ont un âge maximum.", []),
-}
+def _questions() -> dict:
+    return {
+        "target_level": (
+            tr("Quel niveau d'études souhaitez-vous financer ?", "Which level of study would you like to fund?"),
+            [(tr("Licence / bachelor", "Bachelor's"), tr("Je vise une licence", "I am aiming for a bachelor's degree")),
+             (tr("Master", "Master's"), tr("Je vise un master", "I am aiming for a master's degree")),
+             (tr("Doctorat", "PhD"), tr("Je vise un doctorat", "I am aiming for a PhD")),
+             (tr("Après le bac", "After high school"), tr("Je passe mon bac", "I am finishing high school"))],
+        ),
+        "nationalities": (
+            tr("Quelle est votre nationalité ? (beaucoup de bourses en dépendent)",
+               "What is your nationality? (many scholarships depend on it)"),
+            [(tr("Sénégal", "Senegal"), tr("Je suis sénégalais", "I am from Senegal")),
+             (tr("Côte d'Ivoire", "Côte d'Ivoire"), tr("Je suis ivoirien", "I am from Côte d'Ivoire")),
+             (tr("Cameroun", "Cameroon"), tr("Je suis camerounais", "I am from Cameroon")),
+             (tr("Maroc", "Morocco"), tr("Je suis du Maroc", "I am from Morocco")),
+             (tr("Togo", "Togo"), tr("Je suis togolais", "I am from Togo"))],
+        ),
+        "domain": (
+            tr("Dans quel domaine souhaitez-vous étudier ?", "Which field would you like to study?"),
+            [(tr("Informatique", "Computer science"), "informatique"), (tr("Économie / gestion", "Economics / business"), "economie"),
+             (tr("Ingénierie", "Engineering"), "ingenierie"), (tr("Médecine / santé", "Medicine / health"), "medecine"),
+             (tr("Biologie", "Biology"), "biologie"), (tr("Tous domaines", "All fields"), tr("tous domaines", "all fields"))],
+        ),
+        "age": (tr("Quel âge avez-vous ? Certaines bourses ont un âge maximum.",
+                   "How old are you? Some scholarships have a maximum age."), []),
+    }
 
 
 def next_question(criteria: dict) -> tuple[str | None, list[dict], list[str]]:
     missing = [k for k in ("target_level", "nationalities", "domain", "age") if not criteria.get(k)]
     if not missing:
         return None, [], []
-    q, replies = QUESTIONS[missing[0]]
-    labels = {"target_level": "niveau visé", "nationalities": "nationalité", "domain": "domaine", "age": "âge"}
+    q, replies = _questions()[missing[0]]
+    labels = {"target_level": tr("niveau visé", "target level"), "nationalities": tr("nationalité", "nationality"),
+              "domain": tr("domaine", "field of study"), "age": tr("âge", "age")}
     return q, [{"label": a, "value": b} for a, b in replies], [labels[m] for m in missing]
 
 
 def summarize_understanding(c: dict) -> str:
+    levels = i18n.loc(LEVELS, i18n.LEVELS_EN)
+    domains = i18n.loc(DOMAINS, i18n.DOMAINS_EN)
+    names = i18n.countries(COUNTRIES)
     parts = []
     if c.get("target_level"):
-        parts.append(LEVELS[c["target_level"]])
+        parts.append(levels.get(c["target_level"], c["target_level"]))
     if c.get("domain"):
-        parts.append(DOMAINS.get(c["domain"], c["domain"]).lower())
+        parts.append(domains.get(c["domain"], c["domain"]).lower())
     if c.get("nationalities"):
-        parts.append("nationalité " + ", ".join(COUNTRIES.get(n, n) for n in c["nationalities"]))
+        parts.append(tr("nationalité ", "nationality: ") + ", ".join(names.get(n, n) for n in c["nationalities"]))
     if c.get("wished_countries"):
-        parts.append("pour étudier en " + ", ".join(COUNTRIES.get(n, n) for n in c["wished_countries"]))
+        parts.append(tr("pour étudier en ", "to study in ") + ", ".join(names.get(n, n) for n in c["wished_countries"]))
     if c.get("age"):
-        parts.append(f"{c['age']} ans")
+        parts.append(tr(f"{c['age']} ans", f"{c['age']} years old"))
     if c.get("full_funding_only"):
-        parts.append("financement complet uniquement")
+        parts.append(tr("financement complet uniquement", "full funding only"))
     return " · ".join(parts)

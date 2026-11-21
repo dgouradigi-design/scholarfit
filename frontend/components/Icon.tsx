@@ -1,7 +1,10 @@
 import { LOGO_BOTTOM, LOGO_TOP } from "@/lib/logoPaths";
+import { WORD_FIT, WORD_SCHOLAR, WORD_W } from "@/lib/logoWordmark";
 // Petites icônes au trait (style « lucide »), sans dépendance externe.
 const PATHS: Record<string, string> = {
   filter: "M4 6h16M7 12h10M10 18h4",
+  card: "M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18M7 15h4",
+  copy: "M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
   search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3",
   star: "m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z",
@@ -53,11 +56,15 @@ export function LogoMark({ className = "h-8 w-auto" }: { className?: string }) {
   );
 }
 
-export function Logo() {
+/** Logo complet : symbole + nom vectorisé (le nom suit la couleur du thème, « Fit » en menthe). */
+export function Logo({ className = "h-7", onDark = false }: { className?: string; onDark?: boolean }) {
   return (
-    <span className="flex items-center gap-2" aria-label="ScholarFit">
-      <LogoMark className="h-7 w-auto" />
-      <span className="font-serif text-[21px] font-semibold tracking-[-0.02em] text-ink">Scholar<span className="text-brand">Fit</span></span>
+    <span className={`flex items-center gap-2 ${className}`} role="img" aria-label="ScholarFit">
+      <LogoMark className="h-full w-auto" />
+      <svg viewBox={`0 11 ${WORD_W} 22`} className="h-[72%] w-auto" aria-hidden="true">
+        <path d={WORD_SCHOLAR} fill={onDark ? "#ffffff" : "currentColor"} className={onDark ? "" : "text-ink"} />
+        <path d={WORD_FIT} fill={onDark ? "#3ee0a8" : "currentColor"} className={onDark ? "" : "text-brand"} />
+      </svg>
     </span>
   );
 }

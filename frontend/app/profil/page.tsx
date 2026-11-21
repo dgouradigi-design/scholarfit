@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import RequireAuth from "@/components/RequireAuth";
 import { ScoreRing } from "@/components/ScholarshipCard";
 import { Meta, Profile, api, getMeta, setToken } from "@/lib/api";
+import { useT } from "@/components/LangProvider";
 
 const STEPS = ["Identité", "Parcours", "Projet et atouts", "Facultatif"];
 const SITUATIONS: Record<string, string> = {
@@ -18,6 +19,7 @@ const SITUATIONS: Record<string, string> = {
 const TESTS = ["IELTS", "TOEFL", "DELF", "DALF", "TCF", "TestDaF"];
 
 function ProfileForm() {
+  const { t } = useT();
   const [meta, setMeta] = useState<Meta | null>(null);
   const [p, setP] = useState<Profile | null>(null);
   const [step, setStep] = useState(0);
@@ -54,7 +56,7 @@ function ProfileForm() {
     try {
       const out = await api<Profile>("/api/profile", { method: "PUT", body: JSON.stringify(body) });
       setP(out);
-      setMsg("Profil enregistré.");
+      setMsg(t("Profil enregistré."));
       if (goNext) setStep(Math.min(step + 1, STEPS.length - 1));
     } catch (e) {
       setError((e as Error).message);
@@ -70,14 +72,14 @@ function ProfileForm() {
     try {
       const out = await api<Profile>("/api/profile/cv", { method: "POST", body: fd });
       setP(out);
-      setMsg("CV importé : vérifie les champs préremplis (expériences, engagement, domaine).");
+      setMsg(t("CV importé : vérifiez les champs préremplis (expériences, engagement, domaine)."));
     } catch (e) {
       setError((e as Error).message);
     }
   }
 
   async function deleteAccount() {
-    if (!confirm("Supprimer définitivement ton compte, ton profil, tes CV, lettres et candidatures ?")) return;
+    if (!confirm(t("Supprimer définitivement votre compte, votre profil, vos CV, lettres et candidatures ?"))) return;
     await api("/api/auth/me", { method: "DELETE" });
     setToken(null);
     window.location.href = "/";
@@ -87,63 +89,63 @@ function ProfileForm() {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-5">
       <div>
-        <h1 className="text-3xl">Mon profil</h1>
-        <p className="mt-1 flex items-center gap-2 text-sm text-muted"><Icon name="shield" className="h-4 w-4 text-ok" />Tes données sont privées : elles servent uniquement au matching de tes bourses.</p>
+        <h1 className="text-[1.65rem] sm:text-3xl">{t("Mon profil")}</h1>
+        <p className="mt-1 flex items-center gap-2 text-sm text-muted"><Icon name="shield" className="h-4 w-4 text-ok" />{t("Vos données sont privées : elles servent uniquement au matching de vos bourses.")}</p>
       </div>
 
       <div className="flex gap-1 overflow-x-auto border-b border-line">
         {STEPS.map((s, i) => (
           <button key={s} onClick={() => setStep(i)}
-            className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm ${i === step ? "border-brand font-semibold text-ink" : "border-transparent text-muted hover:text-ink"}`}>{s}</button>
+            className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm ${i === step ? "border-brand font-semibold text-ink" : "border-transparent text-muted hover:text-ink"}`}>{t(s)}</button>
         ))}
       </div>
       <div className="card space-y-4 p-6">
         {step === 0 && (
           <>
-            <div><label className="label">Nom complet</label><input className="input" name="name" autoComplete="name" value={p.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></div>
+            <div><label className="label">{t("Nom complet")}</label><input className="input" name="name" autoComplete="name" value={p.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="label">Date de naissance *</label><input type="date" name="bday" autoComplete="bday" className="input" value={p.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} /></div>
-              <div><label className="label">Pays de résidence</label>
+              <div><label className="label">{t("Date de naissance *")}</label><input type="date" name="bday" autoComplete="bday" className="input" value={p.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} /></div>
+              <div><label className="label">{t("Pays de résidence")}</label>
                 <select className="input" name="country" autoComplete="country" value={p.residence_country ?? ""} onChange={(e) => set("residence_country", e.target.value)}>
-                  <option value="">—</option>{Object.entries(meta.countries).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  <option value="">{t("Choisir…")}</option>{Object.entries(meta.countries).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
             </div>
-            <div><label className="label">Nationalité(s) *</label><CountryPicker value={p.nationalities} onChange={(v) => set("nationalities", v)} countries={meta.countries} placeholder="Ajouter une nationalité" /></div>
+            <div><label className="label">{t("Nationalité(s) *")}</label><CountryPicker value={p.nationalities} onChange={(v) => set("nationalities", v)} countries={meta.countries} placeholder={t("Ajouter une nationalité")} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="label">WhatsApp (alertes, facultatif)</label><input type="tel" name="tel" autoComplete="tel" inputMode="tel" className="input" value={p.phone ?? ""} onChange={(e) => set("phone", e.target.value)} placeholder="+221…" /></div>
-              <label className="flex items-center gap-2 pt-6 text-sm"><input type="checkbox" checked={p.alerts_opt_in} onChange={(e) => set("alerts_opt_in", e.target.checked)} />Recevoir les alertes (nouvelles bourses, rappels)</label>
+              <div><label className="label">{t("WhatsApp (alertes, facultatif)")}</label><input type="tel" name="tel" autoComplete="tel" inputMode="tel" className="input" value={p.phone ?? ""} onChange={(e) => set("phone", e.target.value)} placeholder="+221…" /></div>
+              <label className="flex items-center gap-2 pt-6 text-sm"><input type="checkbox" checked={p.alerts_opt_in} onChange={(e) => set("alerts_opt_in", e.target.checked)} />{t("Recevoir les alertes (nouvelles bourses, rappels)")}</label>
             </div>
           </>
         )}
         {step === 1 && (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="label">Niveau actuel</label>
+              <div><label className="label">{t("Niveau actuel")}</label>
                 <select className="input" value={p.current_level ?? ""} onChange={(e) => set("current_level", e.target.value)}>
-                  <option value="">—</option>{Object.entries(meta.levels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  <option value="">{t("Choisir…")}</option>{Object.entries(meta.levels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
-              <div><label className="label">Niveau visé (diplôme à financer) *</label>
+              <div><label className="label">{t("Niveau visé (diplôme à financer) *")}</label>
                 <select className="input" value={p.target_level ?? ""} onChange={(e) => set("target_level", e.target.value)}>
-                  <option value="">—</option>{Object.entries(meta.levels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  <option value="">{t("Choisir…")}</option>{Object.entries(meta.levels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="label">Domaine d&apos;études *</label>
+              <div><label className="label">{t("Domaine d'études *")}</label>
                 <select className="input" value={p.domain ?? ""} onChange={(e) => set("domain", e.target.value)}>
-                  <option value="">—</option>{Object.entries(meta.domains).filter(([k]) => k !== "tous").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  <option value="">{t("Choisir…")}</option>{Object.entries(meta.domains).filter(([k]) => k !== "tous").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
-              <div><label className="label">Moyenne (sur 20)</label><input type="number" step="0.1" min={0} max={20} className="input" value={p.grade_average ?? ""} onChange={(e) => set("grade_average", e.target.value === "" ? null : Number(e.target.value))} /></div>
+              <div><label className="label">{t("Moyenne (sur 20)")}</label><input type="number" step="0.1" min={0} max={20} className="input" value={p.grade_average ?? ""} onChange={(e) => set("grade_average", e.target.value === "" ? null : Number(e.target.value))} /></div>
             </div>
-            <div><label className="label">Établissement actuel</label><input className="input" name="organization" autoComplete="organization" value={p.institution ?? ""} onChange={(e) => set("institution", e.target.value)} /></div>
+            <div><label className="label">{t("Établissement actuel")}</label><input className="input" name="organization" autoComplete="organization" value={p.institution ?? ""} onChange={(e) => set("institution", e.target.value)} /></div>
           </>
         )}
         {step === 2 && (
           <>
-            <div><label className="label">Pays où tu veux étudier</label>
-              <CountryPicker value={p.wished_countries} onChange={(v) => set("wished_countries", v)} countries={meta.countries} placeholder="Ajouter un pays (vide = tous)" />
-              <p className="mt-1 text-xs text-muted">Si tu choisis des pays, on exclut les bourses limitées à d&apos;autres pays.</p></div>
-            <div><label className="label">Langues parlées</label><input className="input" value={langText} onChange={(e) => setLangText(e.target.value)} placeholder="fr:natif, en:B2, de:A2" /></div>
-            <div><label className="label">Scores de tests de langue</label>
+            <div><label className="label">{t("Pays où vous souhaitez étudier")}</label>
+              <CountryPicker value={p.wished_countries} onChange={(v) => set("wished_countries", v)} countries={meta.countries} placeholder={t("Ajouter un pays (vide = tous)")} />
+              <p className="mt-1 text-xs text-muted">{t("Si vous choisissez des pays, nous excluons les bourses limitées à d'autres pays.")}</p></div>
+            <div><label className="label">{t("Langues parlées")}</label><input className="input" value={langText} onChange={(e) => setLangText(e.target.value)} placeholder={t("fr:natif, en:B2, de:A2")} /></div>
+            <div><label className="label">{t("Scores de tests de langue")}</label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {TESTS.map((t) => (
                   <label key={t} className="flex items-center gap-2 text-sm">
@@ -157,18 +159,18 @@ function ProfileForm() {
                 ))}
               </div>
               <p className="mt-1 text-xs text-muted">DELF/DALF : indique le niveau en chiffre (B1 = 1, B2 = 2, C1 = 3).</p></div>
-            <div><label className="label">Expériences (stages, emplois, projets)</label><textarea rows={4} className="input" value={p.experiences ?? ""} onChange={(e) => set("experiences", e.target.value)} /></div>
-            <div><label className="label">Engagement associatif</label><textarea rows={3} className="input" value={p.engagement ?? ""} onChange={(e) => set("engagement", e.target.value)} /></div>
-            <div><label className="label">Projet professionnel</label><textarea rows={3} className="input" value={p.project ?? ""} onChange={(e) => set("project", e.target.value)} placeholder="Ce que tu veux faire après tes études, et pourquoi." /></div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.full_funding_only} onChange={(e) => set("full_funding_only", e.target.checked)} />Je ne cherche que des bourses à financement complet</label>
+            <div><label className="label">{t("Expériences (stages, emplois, projets)")}</label><textarea rows={4} className="input" value={p.experiences ?? ""} onChange={(e) => set("experiences", e.target.value)} /></div>
+            <div><label className="label">{t("Engagement associatif")}</label><textarea rows={3} className="input" value={p.engagement ?? ""} onChange={(e) => set("engagement", e.target.value)} /></div>
+            <div><label className="label">{t("Projet professionnel")}</label><textarea rows={3} className="input" value={p.project ?? ""} onChange={(e) => set("project", e.target.value)} placeholder={t("Ce que vous voulez faire après vos études, et pourquoi.")} /></div>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.full_funding_only} onChange={(e) => set("full_funding_only", e.target.checked)} />{t("Je ne cherche que des bourses à financement complet")}</label>
           </>
         )}
         {step === 3 && (
           <>
-            <p className="text-sm text-muted">Ces informations sont facultatives et ne sont jamais partagées. Elles débloquent des bourses réservées à certains publics.</p>
+            <p className="text-sm text-muted">{t("Ces informations sont facultatives et ne sont jamais partagées. Elles débloquent des bourses réservées à certains publics.")}</p>
             {Object.entries(SITUATIONS).map(([k, v]) => (
               <label key={k} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={p.situations.includes(k)} onChange={(e) => set("situations", e.target.checked ? [...p.situations, k] : p.situations.filter((x) => x !== k))} />{v}
+                <input type="checkbox" checked={p.situations.includes(k)} onChange={(e) => set("situations", e.target.checked ? [...p.situations, k] : p.situations.filter((x) => x !== k))} />{t(v)}
               </label>
             ))}
           </>
@@ -176,8 +178,8 @@ function ProfileForm() {
         {error && <p className="text-sm text-danger">{error}</p>}
         {msg && <p className="text-sm text-brand">{msg}</p>}
         <div className="flex flex-wrap gap-2 pt-2">
-          <button className="btn-primary" disabled={saving} onClick={() => save(step < STEPS.length - 1)}>{step < STEPS.length - 1 ? "Enregistrer et continuer" : "Enregistrer"}</button>
-          {step > 0 && <button className="btn-ghost" onClick={() => setStep(step - 1)}>Retour</button>}
+          <button className="btn-primary" disabled={saving} onClick={() => save(step < STEPS.length - 1)}>{step < STEPS.length - 1 ? t("Enregistrer et continuer") : t("Enregistrer")}</button>
+          {step > 0 && <button className="btn-ghost" onClick={() => setStep(step - 1)}>{t("Retour")}</button>}
         </div>
       </div>
 
@@ -188,26 +190,26 @@ function ProfileForm() {
           <div className="flex items-center gap-4">
             <span className="rounded-full bg-night p-1"><ScoreRing value={p.completeness} color={p.minimum_ok ? "#3ee0a8" : "#ffb547"} size={60} /></span>
             <div>
-              <p className="font-semibold">{p.minimum_ok ? "Ton profil permet le matching" : "Profil à compléter"}</p>
-              <p className="text-xs text-muted">Complété à {p.completeness} %</p>
+              <p className="font-semibold">{p.minimum_ok ? t("Votre profil permet le matching") : t("Profil à compléter")}</p>
+              <p className="text-xs text-muted">{t("Complété à")} {p.completeness} %</p>
             </div>
           </div>
-          {!p.minimum_ok && <p className="mt-3 text-sm text-warm">Il manque : {p.missing_minimum.join(", ")}</p>}
+          {!p.minimum_ok && <p className="mt-3 text-sm text-warm">{t("Il manque :")} {p.missing_minimum.join(", ")}</p>}
           {p.completeness_tip && <p className="mt-2 text-xs text-muted">{p.completeness_tip}</p>}
-          {p.minimum_ok && <Link href="/mes-bourses" className="btn-dark mt-4 w-full">Voir mes bourses</Link>}
+          {p.minimum_ok && <Link href="/mes-bourses" className="btn-dark mt-4 w-full">{t("Voir mes bourses")}</Link>}
         </div>
 
         <div className="card p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold"><Icon name="upload" className="h-4 w-4 text-brand" />Importe ton CV</p>
-          <p className="mt-1 text-xs text-muted">PDF texte, Word (.docx) ou .txt. On préremplit seulement les champs vides, tu vérifies ensuite.</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><Icon name="upload" className="h-4 w-4 text-brand" />{t("Importez votre CV")}</p>
+          <p className="mt-1 text-xs text-muted">{t("PDF texte, Word (.docx) ou .txt. Seuls les champs vides sont préremplis, vous vérifiez ensuite.")}</p>
           <label className="btn-ghost mt-3 w-full cursor-pointer">
-            Choisir un fichier
+            {t("Choisir un fichier")}
             <input type="file" accept=".pdf,.docx,.txt" className="sr-only" onChange={(e) => e.target.files?.[0] && uploadCV(e.target.files[0])} />
           </label>
-          {p.has_cv && <p className="mt-2 text-xs text-ok">✓ Un CV est enregistré. <Link href="/cv" className="underline">L&apos;améliorer</Link></p>}
+          {p.has_cv && <p className="mt-2 text-xs text-ok">{t("✓ Un CV est enregistré.")} <Link href="/cv" className="underline">{t("L'améliorer")}</Link></p>}
         </div>
 
-        <button className="w-full text-center text-xs text-danger hover:underline" onClick={deleteAccount}>Supprimer mon compte et toutes mes données</button>
+        <button className="w-full text-center text-xs text-danger hover:underline" onClick={deleteAccount}>{t("Supprimer mon compte et toutes mes données")}</button>
       </aside>
     </div>
   );

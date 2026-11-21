@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .db import init_db
+from .i18n import LangMiddleware
 from . import scheduler
 from .routers import admin, ai, applications, auth, chat, coaching, profile, questionnaire, scholarships
 
@@ -14,9 +15,24 @@ settings = get_settings()
 
 
 
+def _load_translations() -> None:
+    """Version anglaise des fiches de départ (fichier fourni, sans IA)."""
+    from .db import SessionLocal
+    from .translate import load_seed_translations
+
+    db = SessionLocal()
+    try:
+        load_seed_translations(db)
+    except Exception:  # noqa: BLE001 - le site reste en français pour ces fiches
+        logging.getLogger(__name__).exception("Traductions de départ non chargées")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    _load_translations()
     scheduler.start()
     yield
     scheduler.stop()
@@ -28,6 +44,7 @@ app = FastAPI(
     description="Collecte de bourses d'études, matching profil / bourses, assistant de recherche, CV et lettres, accompagnement des candidatures.",
     version="0.2.0",
 )
+app.add_middleware(LangMiddleware)  # ?lang=en ou cookie sf_lang=en : textes de l'API en anglais
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

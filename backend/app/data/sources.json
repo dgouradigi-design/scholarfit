@@ -7,79 +7,178 @@
     "path": "scholarships.json",
     "enabled": true,
     "trusted": false,
-    "note": "98 opportunités réelles sur tous les continents (82 bourses, 10 stages, 6 conférences), montants et dates INDICATIFS, à vérifier avant production."
+    "note": "98 opportunités de référence sur tous les continents (82 bourses, 10 stages, 6 conférences)."
   },
   {
     "name": "Découverte IA (monde entier)",
     "url": "https://api.anthropic.com",
     "method": "ai",
     "connector": "ai_discovery",
-    "zones_per_run": 5,
-    "frequency_hours": 24,
+    "zones_per_run": 6,
+    "frequency_hours": 12,
     "enabled": true,
-    "note": "Claude cherche sur le web les bourses de 5 zones du monde par passage (24 zones au total : bourses sur tous les continents, stages et conférences). Liens testés avant enregistrement, fiches « à vérifier ». Nécessite ANTHROPIC_API_KEY."
+    "note": "Claude cherche sur le web, 6 zones par passage, deux fois par jour : 46 zones au total (régions, pays comme le Ghana, femmes, domaines, niveaux, stages des organisations internationales, conférences). Tout le monde est parcouru en 4 jours environ, puis on recommence pour les nouvelles sessions. Liens testés avant enregistrement. Nécessite ANTHROPIC_API_KEY."
   },
   {
     "name": "Afri-Carrières",
     "url": "https://afri-carrieres.com",
     "method": "page",
     "connector": "site",
-    "limit": 30,
-    "frequency_hours": 24,
+    "limit": 60,
+    "frequency_hours": 12,
     "enabled": true,
-    "note": "Agrégateur d'offres pour l'Afrique (bourses, stages, emplois, concours). Flux /feed/ essayé d'abord, sinon les annonces de la page d'accueil. Le lien vers le site officiel est repris de chaque annonce. robots.txt respecté ; lire les CGU et demander un partenariat si possible."
+    "note": "Agrégateur d'offres pour l'Afrique (bourses, stages, emplois, concours). Flux /feed/ essayé d'abord, sinon les annonces de la page d'accueil. Le lien vers le site officiel est repris de chaque annonce. robots.txt respecté ; lire les CGU et demander un partenariat si possible.",
+    "feed_pages": 3
   },
   {
     "name": "Opportunities For Africans",
     "url": "https://www.opportunitiesforafricans.com",
     "method": "page",
     "connector": "site",
-    "limit": 30,
-    "frequency_hours": 24,
+    "limit": 60,
+    "frequency_hours": 12,
     "enabled": true,
-    "note": "Bourses, stages, conférences et concours pour jeunes Africains."
+    "note": "Bourses, stages, conférences et concours pour jeunes Africains.",
+    "feed_pages": 3
   },
   {
     "name": "Opportunity Desk",
     "url": "https://opportunitydesk.org",
     "method": "page",
     "connector": "site",
-    "limit": 30,
-    "frequency_hours": 24,
+    "limit": 60,
+    "frequency_hours": 12,
     "enabled": true,
-    "note": "Bourses, stages, conférences et programmes jeunesse dans le monde entier."
+    "note": "Bourses, stages, conférences et programmes jeunesse dans le monde entier.",
+    "feed_pages": 3
   },
   {
     "name": "Scholars4Dev",
     "url": "https://www.scholars4dev.com",
     "method": "page",
     "connector": "site",
-    "limit": 20,
-    "frequency_hours": 48,
+    "limit": 60,
+    "frequency_hours": 12,
     "enabled": true,
     "kind": "bourse",
-    "note": "Bourses internationales pour étudiants de pays en développement."
+    "note": "Bourses internationales pour étudiants de pays en développement.",
+    "feed_pages": 3
   },
   {
     "name": "After School Africa",
     "url": "https://www.afterschoolafrica.com",
     "method": "page",
     "connector": "site",
-    "limit": 20,
-    "frequency_hours": 48,
+    "limit": 60,
+    "frequency_hours": 12,
     "enabled": true,
-    "note": "Bourses, stages et conférences pour étudiants africains."
+    "note": "Bourses, stages et conférences pour étudiants africains.",
+    "feed_pages": 3
   },
   {
     "name": "Conference Index (conférences étudiantes)",
     "url": "https://conferenceindex.org",
     "method": "page",
     "connector": "site",
-    "limit": 20,
-    "frequency_hours": 72,
+    "limit": 60,
+    "frequency_hours": 12,
     "enabled": false,
     "kind": "conference",
-    "note": "Annuaire de conférences académiques. Désactivé : très volumineux, à filtrer par domaine avant d'activer (paramètre paths)."
+    "note": "Annuaire de conférences académiques. Désactivé : très volumineux, à filtrer par domaine avant d'activer (paramètre paths).",
+    "feed_pages": 3
+  },
+  {
+    "name": "Opportunities Circle",
+    "url": "https://www.opportunitiescircle.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses, stages, conférences et programmes d'échange dans le monde entier."
+  },
+  {
+    "name": "Youth Opportunities",
+    "url": "https://www.youthop.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses, stages et concours pour les jeunes, tous pays."
+  },
+  {
+    "name": "Scholarship Positions",
+    "url": "https://scholarship-positions.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses de licence, master, doctorat et post-doctorat dans le monde entier, classées par pays et par domaine.",
+    "kind": "bourse"
+  },
+  {
+    "name": "World Scholarship Forum",
+    "url": "https://worldscholarshipforum.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses internationales par pays, niveau et domaine.",
+    "kind": "bourse"
+  },
+  {
+    "name": "Scholarships Ads",
+    "url": "https://www.scholarshipsads.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses de licence, master et doctorat par pays d'études.",
+    "kind": "bourse"
+  },
+  {
+    "name": "Scholarship Roar",
+    "url": "https://scholarshiproar.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses pour étudiants internationaux, dont bourses pour les femmes et par domaine.",
+    "kind": "bourse"
+  },
+  {
+    "name": "Study Abroad Nations",
+    "url": "https://studyabroadnations.com",
+    "method": "page",
+    "connector": "site",
+    "limit": 60,
+    "feed_pages": 3,
+    "frequency_hours": 12,
+    "enabled": true,
+    "note": "Bourses complètes pour étudiants internationaux et africains.",
+    "kind": "bourse"
+  },
+  {
+    "name": "ReliefWeb (stages ONU, ONG, organisations internationales)",
+    "url": "https://api.reliefweb.int",
+    "method": "api",
+    "connector": "reliefweb",
+    "limit": 300,
+    "frequency_hours": 12,
+    "enabled": true,
+    "kind": "stage",
+    "note": "Tous les stages publiés par les agences de l'ONU, les ONG et les organisations internationales, avec le pays du stage et la date de clôture. Nécessite RELIEFWEB_APPNAME (gratuit, à demander sur https://apidoc.reliefweb.int)."
   },
   {
     "name": "EURAXESS (offres de doctorat, flux RSS)",

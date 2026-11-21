@@ -18,9 +18,9 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     if not any(ch.isalpha() for ch in pw) or not any(ch.isdigit() for ch in pw):
         raise HTTPException(422, "Le mot de passe doit contenir au moins 8 caractères, dont une lettre et un chiffre.")
     if pw.strip().lower() == email or pw.lower() in email:
-        raise HTTPException(422, "Le mot de passe ne doit pas reprendre ton adresse e-mail.")
+        raise HTTPException(422, "Le mot de passe ne doit pas reprendre votre adresse e-mail.")
     if db.scalars(select(User).where(User.email == email)).first():
-        raise HTTPException(409, "Un compte existe déjà avec cet e-mail : connecte-toi ou utilise une autre adresse.")
+        raise HTTPException(409, "Un compte existe déjà avec cet e-mail : connectez-vous ou utilisez une autre adresse.")
     user = User(email=email, password_hash=hash_password(body.password), is_admin=email in get_settings().admin_email_list)
     user.profile = Profile()
     db.add(user)

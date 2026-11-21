@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import { api } from "@/lib/api";
+import { useT } from "./LangProvider";
 
 export default function AddToTracker({ scholarshipId }: { scholarshipId: number }) {
+  const { t } = useT();
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   return (
     <button
@@ -18,7 +20,7 @@ export default function AddToTracker({ scholarshipId }: { scholarshipId: number 
         }
       }}
     >
-      {state === "done" ? "✓ Dans mon suivi" : state === "error" ? "Réessayer" : "Ajouter au suivi"}
+      {state === "done" ? `✓ ${t("Dans mon suivi")}` : state === "error" ? t("Réessayer") : t("Ajouter au suivi")}
     </button>
   );
 }

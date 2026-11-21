@@ -13,7 +13,9 @@ import unicodedata
 from dataclasses import dataclass, field
 from datetime import date
 
+from . import i18n
 from .deadlines import deadline_info
+from .i18n import t
 from .geo import countries_in
 from .models import Profile, Scholarship
 from .vocab import COUNTRIES, DOMAINS, LEVELS, expand_nationalities
@@ -33,6 +35,17 @@ SITUATION_LABELS = {
     "premiere_generation": "première génération à l'université",
     "femmes": "candidates femmes",
 }
+SITUATION_LABELS_EN = {
+    "refugie": "refugee status",
+    "handicap": "disability",
+    "revenus_modestes": "low household income",
+    "premiere_generation": "first generation at university",
+    "femmes": "women applicants",
+}
+
+
+def situation_labels() -> dict[str, str]:
+    return i18n.loc(SITUATION_LABELS, SITUATION_LABELS_EN)
 
 
 @dataclass
@@ -115,13 +128,13 @@ def missing_minimum(c: Criteria) -> list[str]:
     """Profil minimum = nationalité, âge, niveau visé, domaine."""
     missing = []
     if not c.nationalities:
-        missing.append("nationalité")
+        missing.append(t("nationalité", "nationality"))
     if c.age is None:
-        missing.append("âge")
+        missing.append(t("âge", "age"))
     if not c.target_level:
-        missing.append("niveau visé")
+        missing.append(t("niveau visé", "target level"))
     if not c.domain:
-        missing.append("domaine")
+        missing.append(t("domaine", "field of study"))
     return missing
 
 
@@ -129,9 +142,9 @@ def missing_minimum(c: Criteria) -> list[str]:
 def hard_filter(s: Scholarship, c: Criteria, today: date) -> str | None:
     """Retourne la raison d'exclusion, ou None si la bourse est accessible."""
     if deadline_info(s, today).status == "expiree":
-        return "date limite dépassée"
+        return t("date limite dépassée", "deadline passed")
     if c.deadline_after and s.deadline and s.deadline < c.deadline_after:
-        return "date limite trop proche"
+        return t("date limite trop proche", "deadline too close")
     if c.target_level and s.levels and c.target_level not in s.levels:
         return "niveau"
     if c.nationalities:
@@ -144,11 +157,11 @@ def hard_filter(s: Scholarship, c: Criteria, today: date) -> str | None:
         return "âge"
     dest = c.destination_countries()
     if dest and s.study_countries and not set(s.study_countries) & dest:
-        return "pays d'étude"
+        return t("pays d'étude", "study country")
     if c.full_funding_only and not s.full_funding:
-        return "financement partiel"
+        return t("financement partiel", "partial funding")
     if s.target_groups and not set(s.target_groups) & set(c.situations):
-        return "public ciblé"
+        return t("public ciblé", "target group")
     return None
 
 
@@ -181,9 +194,10 @@ def language_ok(s: Scholarship, c: Criteria) -> tuple[bool | None, str | None]:
         return None, None
     for test, minimum in s.language_tests.items():
         if c.language_scores.get(test, -1) >= minimum:
-            return True, f"ton {test} ({c.language_scores[test]}) atteint le minimum demandé"
-    demanded = " ou ".join(f"{t} {m:g}" for t, m in s.language_tests.items())
-    return False, f"il te faut un test de langue : {demanded}"
+            return True, t(f"votre {test} ({c.language_scores[test]}) atteint le minimum demandé",
+                            f"your {test} score ({c.language_scores[test]}) meets the required minimum")
+    demanded = t(" ou ", " or ").join(f"{k} {m:g}" for k, m in s.language_tests.items())
+    return False, t(f"un test de langue est demandé : {demanded}", f"a language test is required: {demanded}")
 
 
 def score(s: Scholarship, c: Criteria, today: date) -> MatchResult:
@@ -194,34 +208,41 @@ def score(s: Scholarship, c: Criteria, today: date) -> MatchResult:
     # Domaine (30)
     if c.domain and c.domain in (s.domains or []):
         total += WEIGHTS["domain"]
-        reasons.append(f"elle finance ton domaine ({DOMAINS.get(c.domain, c.domain)})")
+        dom = i18n.loc(DOMAINS, i18n.DOMAINS_EN).get(c.domain, c.domain)
+        reasons.append(t(f"elle finance votre domaine ({dom})", f"it funds your field ({dom})"))
     elif "tous" in (s.domains or []):
         total += WEIGHTS["domain"] * 0.65
-        reasons.append("elle est ouverte à tous les domaines")
+        reasons.append(t("elle est ouverte à tous les domaines", "it is open to all fields"))
 
     # Similarité projet / description (25)
     sim = semantic_similarity(c.project_text, f"{s.title} {s.summary}") if c.project_text else 0.0
     total += WEIGHTS["semantic"] * min(1.0, 0.35 + sim) if c.project_text else WEIGHTS["semantic"] * 0.35
     if sim >= 0.3:
-        reasons.append("ton projet rejoint les objectifs de la bourse")
+        reasons.append(t("votre projet rejoint les objectifs de la bourse", "your project matches the goals of the scholarship"))
 
     # Notes et langues (20)
     part = 0.5
+    blocking = 0
     if s.min_grade is not None:
         if c.grade_average is None:
-            gaps.append(f"moyenne minimum demandée : {s.min_grade:g}/20 (ajoute ta moyenne au profil)")
+            gaps.append(t(f"moyenne minimum demandée : {s.min_grade:g}/20 (ajoutez votre moyenne au profil)",
+                           f"minimum average required: {s.min_grade:g}/20 (add your average to your profile)"))
         elif c.grade_average >= s.min_grade:
             part += 0.25
-            reasons.append(f"ta moyenne ({c.grade_average:g}/20) dépasse le minimum de {s.min_grade:g}/20")
+            reasons.append(t(f"votre moyenne ({c.grade_average:g}/20) dépasse le minimum de {s.min_grade:g}/20",
+                             f"your average ({c.grade_average:g}/20) is above the minimum of {s.min_grade:g}/20"))
         else:
             part -= 0.5
-            gaps.append(f"ta moyenne ({c.grade_average:g}/20) est sous le minimum de {s.min_grade:g}/20")
+            blocking += 1
+            gaps.append(t(f"votre moyenne ({c.grade_average:g}/20) est sous le minimum de {s.min_grade:g}/20",
+                          f"your average ({c.grade_average:g}/20) is below the minimum of {s.min_grade:g}/20"))
     lang, msg = language_ok(s, c)
     if lang is True:
         part += 0.25
         reasons.append(msg)
     elif lang is False:
         part -= 0.25
+        blocking += 1
         gaps.append(msg)
     elif s.languages and c.languages and set(s.languages) & set(c.languages):
         part += 0.25
@@ -233,8 +254,10 @@ def score(s: Scholarship, c: Criteria, today: date) -> MatchResult:
         common = set(s.study_countries) & dest
         exact = common & set(c.wished_countries)
         total += WEIGHTS["country"] * (1.0 if exact or not c.wished_countries else 0.8)
-        names = ", ".join(COUNTRIES.get(x, x) for x in sorted(exact or common))
-        reasons.append(f"elle permet d'étudier dans un pays que tu vises ({names})")
+        table = i18n.countries(COUNTRIES)
+        names = ", ".join(table.get(x, x) for x in sorted(exact or common))
+        reasons.append(t(f"elle permet d'étudier dans un pays que vous visez ({names})",
+                         f"it lets you study in a country you are aiming for ({names})"))
     elif not s.study_countries:
         total += WEIGHTS["country"] * 0.6
     else:
@@ -243,27 +266,27 @@ def score(s: Scholarship, c: Criteria, today: date) -> MatchResult:
     # Financement (10)
     if s.full_funding:
         total += WEIGHTS["funding"]
-        reasons.append("le financement est complet")
+        reasons.append(t("le financement est complet", "it is fully funded"))
     elif s.amount:
         total += WEIGHTS["funding"] * 0.5
 
     if s.target_groups and set(s.target_groups) & set(c.situations):
-        reasons.append("elle est réservée à un public dont tu fais partie")
+        reasons.append(t("elle est réservée à un public dont vous faites partie", "it is reserved for a group you belong to"))
 
     info = deadline_info(s, today)
     days_left = info.days_left
     if info.status == "urgente":
-        gaps.append(f"date limite dans {days_left} jour{'s' if (days_left or 0) > 1 else ''} : priorité absolue")
+        plural = "s" if (days_left or 0) > 1 else ""
+        gaps.append(t(f"date limite dans {days_left} jour{plural} : priorité absolue",
+                      f"deadline in {days_left} day{plural}: top priority"))
     elif info.status == "bientot":
-        gaps.append(f"date limite dans {days_left} jours : commence ton dossier maintenant")
-    if s.deadline_estimated:
-        gaps.append("date limite estimée d'après les années précédentes : vérifie-la sur le site officiel")
+        gaps.append(t(f"date limite dans {days_left} jours : commencez votre dossier maintenant",
+                      f"deadline in {days_left} days: start your application now"))
 
     final = int(round(total))
-    blocking = [g for g in gaps if "sous le minimum" in g or "test de langue" in g]
     if final >= 70 and not blocking:
         chance = "bonne"
-    elif final < 50 or len(blocking) >= 2:
+    elif final < 50 or blocking >= 2:
         chance = "faible"
     else:
         chance = "moyenne"
@@ -312,15 +335,18 @@ def profile_completeness(p: Profile) -> tuple[int, str | None]:
     pct = int(round(100 * sum(checks.values()) / len(checks)))
     tip = None
     if not checks["language_scores"]:
-        tip = "Ajoute ton score de langue (IELTS, TOEFL, DELF…) : beaucoup de bourses en demandent un."
+        tip = t("Ajoutez votre score de langue (IELTS, TOEFL, DELF…) : beaucoup de bourses en demandent un.",
+                "Add your language test score (IELTS, TOEFL, DELF…): many scholarships require one.")
     elif not checks["grade_average"]:
-        tip = "Ajoute ta moyenne : certaines bourses fixent un minimum."
+        tip = t("Ajoutez votre moyenne : certaines bourses fixent un minimum.", "Add your grade average: some scholarships set a minimum.")
     elif not checks["cv"]:
-        tip = "Importe ton CV pour un meilleur matching et des lettres plus personnelles."
+        tip = t("Importez votre CV pour un meilleur matching et des lettres plus personnelles.",
+                "Upload your CV for better matching and more personal letters.")
     elif not checks["project"]:
-        tip = "Décris ton projet professionnel en quelques lignes : il sert au matching et aux lettres."
+        tip = t("Décrivez votre projet professionnel en quelques lignes : il sert au matching et aux lettres.",
+                "Describe your career plan in a few lines: it is used for matching and for your letters.")
     return pct, tip
 
 
 def level_label(code: str | None) -> str:
-    return LEVELS.get(code or "", code or "?")
+    return i18n.loc(LEVELS, i18n.LEVELS_EN).get(code or "", code or "?")

@@ -137,7 +137,7 @@ S = [
          deadline_month_day="05-15", max_age=28, target_groups=["revenus_modestes"], requirements=["releves"]),
     dict(title="Bourse Erasmus+ de mobilité étudiante", organization="Agence Erasmus+ France",
          official_url="https://info.erasmusplus.fr/",
-         summary="Aide pour un semestre ou une année d'études dans un autre pays européen pendant ta licence ou ton master, via ton université.",
+         summary="Aide pour un semestre ou une année d'études dans un autre pays européen pendant votre licence ou votre master, via votre université.",
          levels=["BAC3", "BAC5"], study_countries=[], eligible_nationalities=["ALL"], domains=["tous"],
          languages=["fr", "en"], amount=400, currency="EUR", amount_period="mois", coverage=["allocation"], full_funding=False,
          deadline_month_day="02-15", requirements=["lettre", "releves"]),
@@ -518,7 +518,7 @@ W = [
          levels=["BAC3", "BAC5", "BAC7"], study_countries=["MA"], eligible_nationalities=["AFRICA"], excluded_nationalities=["MA"], domains=["tous"],
          languages=["fr", "ar"], amount=750, currency="MAD", amount_period="mois", coverage=["frais", "allocation"], full_funding=False,
          deadline_month_day="05-15", apply_via="ambassade", requirements=["releves", "diplome", "passeport", "certificat_medical"],
-         eligibility=["La candidature passe par le ministère ou le service des bourses de ton pays, qui transmet les dossiers à l'AMCI."]),
+         eligibility=["La candidature passe par le ministère ou le service des bourses de votre pays, qui transmet les dossiers à l'AMCI."]),
     dict(title="Bourses UM6P pour étudiants africains", organization="Université Mohammed VI Polytechnique (Maroc)",
          official_url="https://um6p.ma/",
          summary="Bourses couvrant tout ou partie des frais et du logement pour des étudiants africains admis à l'UM6P, de la licence au doctorat.",
@@ -672,7 +672,7 @@ EXTRA = {
                      "S'engager à rentrer dans son pays pendant au moins deux ans après la bourse."],
         documents_detail={"lettre": "Quatre textes courts en ligne (leadership, réseau, choix des études, projet de carrière), 500 mots chacun."}),
     "Bourse d'excellence Eiffel": dict(
-        eligibility=["C'est l'établissement français qui présente ta candidature : contacte d'abord le service des relations internationales du master visé."]),
+        eligibility=["C'est l'établissement français qui présente votre candidature : contactez d'abord le service des relations internationales du master visé."]),
     "Mastercard Foundation Scholars Program": dict(
         eligibility=["Montrer une situation financière modeste et un engagement pour sa communauté."]),
     "Bourse du gouvernement japonais (MEXT)": dict(

@@ -1,8 +1,11 @@
 // Client de l'API FastAPI. Le jeton de connexion est gardé dans le navigateur.
 // Vide par défaut : les appels passent par le site lui-même (/api, relayé par next.config.mjs).
 // Ne renseigner NEXT_PUBLIC_API_URL que si l'API est sur un autre domaine en production.
+import { Lang, clientLang, locale, translate } from "./i18n";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
-const DOWN = "Le serveur de ScholarFit ne répond pas. Vérifie que la fenêtre « API » ouverte par start.ps1 tourne toujours, puis recharge la page.";
+const DOWN_FR = "Le serveur de ScholarFit ne répond pas. Vérifiez que la fenêtre « API ScholarFit » ouverte par start.ps1 tourne toujours, puis rechargez la page.";
+const DOWN = () => translate(clientLang(), DOWN_FR);
 const TOKEN_KEY = "bm_token";
 
 export function getToken(): string | null {
@@ -37,15 +40,18 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, { ...init, headers });
+    const lang = clientLang();
+    if (lang !== "fr") headers.set("Accept-Language", lang);
+    const url = lang !== "fr" && path.startsWith("/api") ? `${path}${path.includes("?") ? "&" : "?"}lang=${lang}` : path;
+    res = await fetch(`${API_URL}${url}`, { ...init, headers });
   } catch {
-    throw new ApiError(0, DOWN);
+    throw new ApiError(0, DOWN());
   }
   if (res.status === 401 && token) setToken(null);
   if (!res.ok) {
     const isJson = (res.headers.get("content-type") || "").includes("json");
-    if (!isJson && res.status >= 500) throw new ApiError(res.status, DOWN);
-    let msg = `Erreur ${res.status}`;
+    if (!isJson && res.status >= 500) throw new ApiError(res.status, DOWN());
+    let msg = `${translate(clientLang(), "Erreur")} ${res.status}`;
     try {
       const data = await res.json();
       if (typeof data.detail === "string") msg = data.detail;
@@ -176,16 +182,16 @@ export function getMeta(): Promise<Meta> {
 }
 
 // ---------- Mise en forme ----------
-export function formatAmount(s: Scholarship): string {
-  if (!s.amount) return s.full_funding ? "Financement complet" : "Montant variable";
-  const n = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(s.amount);
-  const period = s.amount_period === "mois" ? " / mois" : s.amount_period === "an" ? " / an" : "";
+export function formatAmount(s: Scholarship, lang: Lang = clientLang()): string {
+  if (!s.amount) return translate(lang, s.full_funding ? "Financement complet" : "Montant variable");
+  const n = new Intl.NumberFormat(locale(lang), { maximumFractionDigits: 0 }).format(s.amount);
+  const period = s.amount_period === "mois" ? translate(lang, " / mois") : s.amount_period === "an" ? translate(lang, " / an") : "";
   return `${n} ${s.currency ?? ""}${period}`.trim();
 }
 
-export function formatDate(iso: string | null): string {
-  if (!iso) return "Date non précisée";
-  return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+export function formatDate(iso: string | null, lang: Lang = clientLang()): string {
+  if (!iso) return translate(lang, "Date non précisée");
+  return new Date(iso + "T00:00:00").toLocaleDateString(locale(lang), { day: "numeric", month: "long", year: "numeric" });
 }
 
 export function daysUntil(iso: string | null): number | null {
@@ -260,8 +266,8 @@ export function getCoachingMeta(): Promise<CoachingMeta> {
   return coachingMetaCache;
 }
 
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export function formatDateTime(iso: string, lang: Lang = clientLang()): string {
+  return new Date(iso).toLocaleString(locale(lang), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 // ---------- Données de la vitrine (avec repli si l'API ne les fournit pas encore) ----------
@@ -286,9 +292,9 @@ export async function getCountryStats(): Promise<CountryStat[]> {
 export type Offer = { code: string; name: string; price: number; currency: string; price_label: string; description: string; features: string[]; recommended?: boolean };
 
 export const DEFAULT_OFFERS: Offer[] = [
-  { code: "autonome", name: "Autonome", price: 0, currency: "XOF", price_label: "Gratuit", description: "Tu postules toi-même avec les outils de la plateforme.", features: ["Matching et score", "Liste des documents et conditions", "CV et lettre assistés", "Rappels de dates limites"] },
-  { code: "standard", name: "Standard", price: 15000, currency: "XOF", price_label: "15 000 F CFA", description: "Un conseiller t'aide à monter et envoyer ton dossier.", features: ["Tout l'offre Autonome", "Un conseiller attitré", "Relecture du CV et de la lettre", "Vérification du dossier avant envoi"], recommended: true },
-  { code: "premium", name: "Premium", price: 35000, currency: "XOF", price_label: "35 000 F CFA", description: "Suivi complet, de la sélection des bourses à l'entretien.", features: ["Tout l'offre Standard", "Plan daté sur tes dates limites", "Préparation à l'entretien", "Aide visa et installation"] },
+  { code: "autonome", name: "Autonome", price: 0, currency: "XOF", price_label: "Gratuit", description: "Vous postulez vous-même avec les outils de la plateforme.", features: ["Matching et score", "Liste des documents et conditions", "CV et lettre assistés", "Rappels de dates limites"] },
+  { code: "standard", name: "Standard", price: 15000, currency: "XOF", price_label: "15 000 F CFA", description: "Un expert vous aide à monter et envoyer votre dossier.", features: ["Tout l'offre Autonome", "Un conseiller attitré", "Relecture du CV et de la lettre", "Vérification du dossier avant envoi"], recommended: true },
+  { code: "premium", name: "Premium", price: 35000, currency: "XOF", price_label: "35 000 F CFA", description: "Suivi complet, de la sélection des bourses à l'entretien.", features: ["Tout l'offre Standard", "Plan daté sur vos dates limites", "Préparation à l'entretien", "Aide visa et installation"] },
 ];
 
 export async function getOffers(): Promise<Offer[]> {
@@ -301,11 +307,12 @@ export async function getOffers(): Promise<Offer[]> {
 
 export type DeadlineInfo = { status: "ouverte" | "bientot" | "urgente" | "expiree" | "inconnue"; days: number | null; label: string; long: string | null };
 
-export function deadlineInfo(s: Scholarship): DeadlineInfo {
+export function deadlineInfo(s: Scholarship, lang: Lang = clientLang()): DeadlineInfo {
   const days = s.days_left ?? daysUntil(s.deadline);
   let status = s.deadline_status;
   if (!status) status = days === null ? "inconnue" : days < 0 ? "expiree" : days <= 14 ? "urgente" : days <= 45 ? "bientot" : "ouverte";
-  const label = (days === null ? "Date limite variable" : days < 0 ? `Clôturée le ${formatDate(s.deadline)}` : days === 0 ? "Clôture aujourd'hui" : `${formatDate(s.deadline)} · J-${days}`);
+  const t = (fr: string, v?: Record<string, string | number>) => translate(lang, fr, v);
+  const label = days === null ? t("Date limite variable") : days < 0 ? t("Clôturée le {date}", { date: formatDate(s.deadline, lang) }) : days === 0 ? t("Clôture aujourd'hui") : `${formatDate(s.deadline, lang)} · ${t("J-{n}", { n: days })}`;
   return { status, days, label, long: s.deadline_label ?? null };
 }
 

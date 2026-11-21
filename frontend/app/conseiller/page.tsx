@@ -18,7 +18,7 @@ function List() {
     api<Coaching[]>("/api/accompagnement/conseiller").then(setList).catch((e) => setError(e.message));
   }, []);
 
-  if (me && !me.is_advisor) return <p className="text-danger">Cet espace est réservé aux conseillers. Un administrateur peut te donner ce rôle.</p>;
+  if (me && !me.is_advisor) return <p className="text-danger">Cet espace est réservé aux conseillers. Un administrateur peut vous donner ce rôle.</p>;
   if (error) return <p className="text-danger">{error}</p>;
   if (!list || !cm) return <p className="text-muted">Chargement…</p>;
 
@@ -33,7 +33,7 @@ function List() {
         <h1 className="text-3xl">Espace conseiller</h1>
         <p className="mt-1 text-muted">{active.length} candidat{active.length > 1 ? "s" : ""} en cours d&apos;accompagnement.</p>
       </div>
-      {shown.length === 0 && <p className="card p-8 text-center text-muted">Aucun candidat pour l&apos;instant. Les nouvelles demandes te sont attribuées selon ta langue, tes pays et tes domaines.</p>}
+      {shown.length === 0 && <p className="card p-8 text-center text-muted">Aucun candidat pour l&apos;instant. Les nouvelles demandes vous sont attribuées selon votre langue, vos pays et vos domaines.</p>}
       <div className="grid gap-4 md:grid-cols-2">
         {shown.map((c) => {
           const late = c.next_step?.due_date && c.next_step.due_date < today;

@@ -157,6 +157,10 @@ class ProfileIn(BaseModel):
     wished_regions: list[str] | None = None
     help_preference: str | None = None
     applications_planned: int | None = Field(default=None, ge=1, le=50)
+    city: str | None = Field(default=None, max_length=120)
+    address: str | None = Field(default=None, max_length=300)
+    links: str | None = Field(default=None, max_length=300)
+    gender: str | None = Field(default=None, pattern="^(|f|m)$")
 
 
 class ProfileOut(ORM):
@@ -185,6 +189,10 @@ class ProfileOut(ORM):
     applications_planned: int | None = None
     questionnaire_done_at: datetime | None = None
     cv_text: str | None = None
+    city: str | None = None
+    address: str | None = None
+    links: str | None = None
+    gender: str | None = None
     has_cv: bool = False
     completeness: int = 0
     minimum_ok: bool = False

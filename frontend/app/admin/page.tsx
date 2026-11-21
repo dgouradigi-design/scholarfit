@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import AdminCoaching from "@/components/AdminCoaching";
+import AdminCredits from "@/components/docs/AdminCredits";
 import RequireAuth from "@/components/RequireAuth";
 import { Meta, Scholarship, api, getMeta } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
@@ -67,6 +68,7 @@ function Admin() {
       {log && <pre className="card overflow-x-auto whitespace-pre-wrap p-4 text-xs">{log}</pre>}
 
       <AdminCoaching meta={meta} />
+      <AdminCredits />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -115,7 +117,7 @@ function Admin() {
           <input required className="input" placeholder="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <input required className="input" placeholder="Organisme" value={form.organization} onChange={(e) => setForm({ ...form, organization: e.target.value })} />
           <input required type="url" className="input sm:col-span-2" placeholder="Lien officiel" value={form.official_url} onChange={(e) => setForm({ ...form, official_url: e.target.value })} />
-          <textarea className="input sm:col-span-2" rows={2} placeholder="Résumé (2 phrases, avec tes mots)" value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
+          <textarea className="input sm:col-span-2" rows={2} placeholder="Résumé (2 phrases, avec vos mots)" value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
           <div className="flex flex-wrap gap-3 text-sm sm:col-span-2">
             {meta && Object.entries(meta.levels).map(([k, v]) => (
               <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={form.levels.includes(k)} onChange={(e) => setForm({ ...form, levels: e.target.checked ? [...form.levels, k] : form.levels.filter((x) => x !== k) })} />{v}</label>

@@ -28,7 +28,7 @@ def test_full_coaching_flow(client, demo):
 
     d = client.get(f"/api/accompagnement/{c['id']}", headers=demo).json()
     titles = [s["title"] for s in d["steps"]]
-    assert "Préparer l'entretien" in titles and "Faire relire ta lettre de motivation" in titles
+    assert "Préparer l'entretien" in titles and "Faire relire votre lettre de motivation" in titles
     dues = [s["due_date"] for s in d["steps"]]
     assert dues == sorted(dues) and min(dues) > str(date.today())
     assert d["student"] is None and len(d["applications"]) == 1  # le candidat ne se voit pas « résumé »

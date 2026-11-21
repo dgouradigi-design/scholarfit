@@ -10,7 +10,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from . import i18n
 from .config import get_settings
+from .i18n import t
 from .db import get_db
 from .models import User
 
@@ -43,20 +45,23 @@ def current_user(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)
 ) -> User:
     if creds is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Connexion requise")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, t("Connexion requise", "Please sign in"))
     try:
         payload = jwt.decode(creds.credentials, get_settings().secret_key, algorithms=["HS256"])
         user = db.get(User, int(payload["sub"]))
     except (jwt.PyJWTError, KeyError, ValueError):
         user = None
     if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expirée, reconnecte-toi")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, t("Session expirée, reconnectez-vous", "Session expired, please sign in again"))
+    if i18n.explicit() and user.lang != i18n.lang():  # langue retenue pour les alertes et e-mails
+        user.lang = i18n.lang()
+        db.commit()
     return user
 
 
 def admin_user(user: User = Depends(current_user)) -> User:
     if not user.is_admin:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Réservé aux administrateurs")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, t("Réservé aux administrateurs", "Administrators only"))
     return user
 
 

@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select  # noqa: F401
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..i18n import is_en, t
 from ..models import Scholarship
 from ..schemas import ScholarshipOut, ScholarshipPage
 from ..serializers import scholarship_out
@@ -19,18 +20,26 @@ router = APIRouter(prefix="/api", tags=["bourses"])
 @router.get("/meta")
 def meta():
     """Listes contrôlées pour les formulaires du site."""
+    from .. import i18n
+    from ..details import COVERAGE_LABELS, requirement_label
+
+    countries = i18n.countries(COUNTRIES)
     return {
-        "levels": LEVELS,
-        "domains": DOMAINS,
-        "countries": dict(sorted(COUNTRIES.items(), key=lambda kv: kv[1])),
+        "lang": i18n.lang(),
+        "levels": i18n.loc(LEVELS, i18n.LEVELS_EN),
+        "domains": i18n.loc(DOMAINS, i18n.DOMAINS_EN),
+        "countries": dict(sorted(countries.items(), key=lambda kv: kv[1])),
         "nationality_groups": {k: sorted(v) for k, v in NATIONALITY_GROUPS.items()},
-        "regions": REGIONS,
-        "kinds": KINDS,
+        "regions": i18n.loc(REGIONS, i18n.REGIONS_EN),
+        "kinds": i18n.loc(KINDS, i18n.KINDS_EN),
         "country_regions": {c: w[1] for c, w in WORLD.items()},
-        "deadline_statuses": {"urgente": "Urgent (14 jours ou moins)", "bientot": "Bientôt (45 jours ou moins)",
-                              "ouverte": "Ouverte", "inconnue": "Date non publiée", "expiree": "Expirée"},
-        "statuses": {"a_preparer": "À préparer", "en_cours": "En cours", "envoyee": "Envoyée", "acceptee": "Acceptée", "refusee": "Refusée"},
-        "requirements": {code: label for code, (label, _d) in REQUIREMENTS.items()},
+        "deadline_statuses": i18n.loc({"urgente": "Urgent (14 jours ou moins)", "bientot": "Bientôt (45 jours ou moins)",
+                                       "ouverte": "Ouverte", "inconnue": "Date non publiée", "expiree": "Expirée"},
+                                      i18n.DEADLINE_STATUSES_EN),
+        "statuses": i18n.loc({"a_preparer": "À préparer", "en_cours": "En cours", "envoyee": "Envoyée", "acceptee": "Acceptée",
+                              "refusee": "Refusée"}, i18n.APPLICATION_STATUSES_EN),
+        "coverage": i18n.loc(COVERAGE_LABELS, i18n.COVERAGE_EN),
+        "requirements": {code: requirement_label(code)[0] for code in REQUIREMENTS},
     }
 
 
@@ -40,6 +49,7 @@ def list_scholarships(
     kind: str | None = Query(None, pattern="^(bourse|stage|conference)$", description="type d'opportunité ; vide = tout"),
     level: str | None = None,
     country: str | None = None,
+    country_exact: bool = False,
     domain: str | None = None,
     nationality: str | None = None,
     full_funding: bool | None = None,
@@ -82,7 +92,10 @@ def list_scholarships(
     if level:
         items = [s for s in items if not s.levels or level in s.levels]
     if country:
-        items = [s for s in items if not s.study_countries or country in s.study_countries]
+        if country_exact:  # seulement les offres de ce pays (même total que /api/stats/countries)
+            items = [s for s in items if country in (s.study_countries or [])]
+        else:  # inclut les offres multi-pays, ouvertes partout
+            items = [s for s in items if not s.study_countries or country in s.study_countries]
     if domain:
         items = [s for s in items if domain in s.domains or "tous" in s.domains]
     if nationality:
@@ -122,9 +135,13 @@ def stats_countries(include_expired: bool = False, kind: str | None = Query(None
             row = counts.setdefault(c, [0, 0])
             row[0] += 1
             row[1] += open_
+    from .. import i18n
+
+    names = i18n.countries(COUNTRIES)
     out = []
     for code, (count, open_count) in counts.items():
-        name, region, lat, lon = WORLD.get(code, (COUNTRIES.get(code, code), None, None, None))
+        _n, region, lat, lon = WORLD.get(code, (COUNTRIES.get(code, code), None, None, None))
+        name = names.get(code, _n)
         out.append({"code": code, "name": name, "region": region, "count": count, "open_count": open_count, "lat": lat, "lon": lon})
     out.sort(key=lambda r: (-r["count"], r["name"]))
     return out
@@ -161,5 +178,9 @@ def stats(db: Session = Depends(get_db)):
 def get_scholarship(key: str, db: Session = Depends(get_db)):
     s = db.get(Scholarship, int(key)) if key.isdigit() else db.scalars(select(Scholarship).where(Scholarship.slug == key)).first()
     if not s:
-        raise HTTPException(404, "Bourse introuvable")
+        raise HTTPException(404, t("Bourse introuvable", "Scholarship not found"))
+    if is_en():
+        from ..translate import ensure_en
+
+        ensure_en(db, s)
     return scholarship_out(s)

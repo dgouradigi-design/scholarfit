@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,500;1,9..144,600;1,9..144,700&family=Syne:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700&family=Poppins:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 /*
@@ -29,10 +29,10 @@
   --color-warm: #ff8a5c;
   --color-warm-soft: #321b10;
   --color-danger: #ff6b6b;
-  --font-sans: "Syne", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-serif: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-accent: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-mono: "Syne", ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-accent: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: "Poppins", ui-monospace, Menlo, Consolas, monospace;
 }
 
 html[data-theme="light"] {
@@ -58,7 +58,7 @@ html[data-theme="light"] {
 
 html { background: var(--color-paper); color: var(--color-ink); color-scheme: dark; }
 body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; background: var(--color-paper); }
-h1, h2, h3 { font-family: var(--font-serif); letter-spacing: -0.015em; font-weight: 700; font-variation-settings: "opsz" 96; }
+h1, h2, h3 { font-family: var(--font-serif); letter-spacing: -0.02em; font-weight: 700; }
 
 @utility btn {
   @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
@@ -106,8 +106,16 @@ h1, h2, h3 { font-family: var(--font-serif); letter-spacing: -0.015em; font-weig
 .animate-marquee { animation: marquee 40s linear infinite; }
 .animate-pulse-dot { animation: pulse-dot 2.4s ease-in-out infinite; }
 .animate-float { animation: float-y 6s ease-in-out infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes beat { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.08); } 24% { transform: scale(1); } 36% { transform: scale(1.05); } 48% { transform: scale(1); } }
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+.animate-float-slow { animation: float-y 8s ease-in-out infinite; animation-delay: -2s; }
+.animate-sway { animation: sway 5s ease-in-out infinite; transform-origin: 50% 100%; }
+.animate-beat { animation: beat 2.8s ease-in-out infinite; }
+svg .animate-float, svg .animate-float-slow, svg .animate-sway, svg .animate-beat { transform-box: fill-box; transform-origin: center; }
+svg .animate-sway { transform-origin: 50% 100%; }
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee, .animate-pulse-dot, .animate-float { animation: none; }
+  .animate-marquee, .animate-pulse-dot, .animate-float, .animate-float-slow, .animate-sway, .animate-beat { animation: none; }
 }
 
 @media print {
@@ -133,3 +141,7 @@ html { scroll-behavior: smooth; }
 .animate-fade-in { animation: fade-in 0.25s ease both; }
 .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @media (prefers-reduced-motion: reduce) { .animate-fade-in, .animate-pop-in { animation: none; } }
+
+/* Petits téléphones : toute l'échelle typographique (en rem) se réduit un peu. */
+@media (max-width: 380px) { html { font-size: 93.75%; } }
+@media (min-width: 1800px) { html { font-size: 106.25%; } }

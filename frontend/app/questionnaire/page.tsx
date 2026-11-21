@@ -7,6 +7,8 @@ import Offers from "@/components/Offers";
 import ScholarshipCard from "@/components/ScholarshipCard";
 import { Match, Meta, Scholarship, api, getMeta } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
+import { useT } from "@/components/LangProvider";
+import { Lang, countryName } from "@/lib/i18n";
 
 /*
   Questionnaire en 5 étapes pour cerner le profil et sortir les bourses qui correspondent.
@@ -37,37 +39,48 @@ function localSteps(meta: Meta): Step[] {
   const levels = meta.levels;
   const domains = Object.fromEntries(Object.entries(meta.domains).filter(([k]) => k !== "tous"));
   return [
-    { id: "identite", title: "Toi", subtitle: "Ta nationalité décide de la plupart des bourses auxquelles tu as droit.", questions: [
-      { id: "nationality", label: "Ta nationalité", type: "country", required: true },
-      { id: "residence_country", label: "Le pays où tu vis aujourd'hui", type: "country" },
-      { id: "birth_date", label: "Ta date de naissance", type: "date", required: true, help: "Beaucoup de bourses fixent un âge maximum." },
+    { id: "identite", title: "Vous", subtitle: "Votre nationalité détermine la plupart des bourses auxquelles vous avez droit.", questions: [
+      { id: "nationality", label: "Votre nationalité", type: "country", required: true },
+      { id: "residence_country", label: "Le pays où vous vivez aujourd'hui", type: "country" },
+      { id: "birth_date", label: "Votre date de naissance", type: "date", required: true, help: "Beaucoup de bourses fixent un âge maximum." },
     ] },
-    { id: "etudes", title: "Tes études", subtitle: "Où tu en es aujourd'hui.", questions: [
-      { id: "current_level", label: "Ton niveau actuel", type: "select", options: levels, required: true },
-      { id: "grade_average", label: "Ta moyenne générale (sur 20)", type: "number", placeholder: "ex. 13,5", help: "Une estimation suffit." },
+    { id: "etudes", title: "Vos études", subtitle: "Où vous en êtes aujourd'hui.", questions: [
+      { id: "current_level", label: "Votre niveau actuel", type: "select", options: levels, required: true },
+      { id: "grade_average", label: "Votre moyenne générale (sur 20)", type: "number", placeholder: "ex. 13,5", help: "Une estimation suffit." },
     ] },
-    { id: "projet", title: "Ton projet", subtitle: "Le diplôme que tu veux faire financer.", questions: [
-      { id: "target_level", label: "Le niveau que tu vises", type: "select", options: levels, required: true },
-      { id: "domain", label: "Ton domaine d'études", type: "select", options: domains, required: true },
+    { id: "projet", title: "Votre projet", subtitle: "Le diplôme que vous souhaitez faire financer.", questions: [
+      { id: "target_level", label: "Le niveau que vous visez", type: "select", options: levels, required: true },
+      { id: "domain", label: "Votre domaine d'études", type: "select", options: domains, required: true },
     ] },
-    { id: "destination", title: "Où étudier", subtitle: "Choisis un ou plusieurs pays, ou laisse vide pour tout voir.", questions: [
-      { id: "wished_countries", label: "Les pays qui t'intéressent", type: "countries" },
-      { id: "study_language", label: "Tu peux étudier en", type: "multiselect", options: { fr: "Français", en: "Anglais", de: "Allemand", es: "Espagnol", ar: "Arabe" } },
+    { id: "destination", title: "Où étudier", subtitle: "Choisissez un ou plusieurs pays, ou laissez vide pour tout voir.", questions: [
+      { id: "wished_countries", label: "Les pays qui vous intéressent", type: "countries" },
+      { id: "study_language", label: "Vous pouvez étudier en", type: "multiselect", options: { fr: "Français", en: "Anglais", de: "Allemand", es: "Espagnol", ar: "Arabe" } },
       { id: "full_funding_only", label: "Je ne veux que des bourses à financement complet", type: "boolean" },
     ] },
-    { id: "situation", title: "Ta situation", subtitle: "Certaines bourses sont réservées à des profils précis. Tout est facultatif.", questions: [
-      { id: "situations", label: "Ce qui te concerne", type: "multiselect", options: SITUATIONS },
-      { id: "help_wanted", label: "Pour postuler, tu préfères", type: "select", options: { seul: "Postuler moi-même", accompagne: "Être accompagné par un conseiller", indecis: "Je ne sais pas encore" } },
+    { id: "situation", title: "Votre situation", subtitle: "Certaines bourses sont réservées à des profils précis. Tout est facultatif.", questions: [
+      { id: "situations", label: "Ce qui vous concerne", type: "multiselect", options: SITUATIONS },
+      { id: "help_wanted", label: "Pour postuler, vous préférez", type: "select", options: { seul: "Postuler moi-même", accompagne: "Être accompagné par un conseiller", indecis: "Je ne sais pas encore" } },
     ] },
   ];
 }
 
-function optionsOf(q: Question, meta: Meta | null): Opt[] {
-  if (q.type === "country" || q.type === "countries") return Object.entries(meta?.countries ?? {}).map(([value, label]) => ({ value, label }));
+function optionsOf(q: Question, meta: Meta | null, lang: Lang): Opt[] {
+  if (q.type === "country" || q.type === "countries") return Object.entries(meta?.countries ?? {}).map(([value, label]) => ({ value, label: countryName(value, lang, label) })).sort((a, b) => a.label.localeCompare(b.label, lang));
   const o = q.options;
   if (!o) return [];
   if (Array.isArray(o)) return o.map((x) => (typeof x === "string" ? { value: x, label: x } : x));
   return Object.entries(o).map(([value, label]) => ({ value, label }));
+}
+
+/** Traduit les libellés des étapes (sans effet si l'API les sert déjà dans la bonne langue). */
+function translateSteps(steps: Step[], t: (fr: string) => string): Step[] {
+  const tr = (x?: string) => (x ? t(x) : x);
+  const opts = (o: Question["options"]): Question["options"] => {
+    if (!o) return o;
+    if (Array.isArray(o)) return o.map((x) => (typeof x === "string" ? { value: x, label: t(x) } : { ...x, label: t(x.label) }));
+    return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, t(v)]));
+  };
+  return steps.map((st) => ({ ...st, title: t(st.title), subtitle: tr(st.subtitle), questions: st.questions.map((q) => ({ ...q, label: t(q.label), help: tr(q.help), placeholder: tr(q.placeholder), options: opts(q.options) })) }));
 }
 
 function isEmpty(v: unknown) {
@@ -106,7 +119,8 @@ async function fallbackMatch(a: Answers, loggedIn: boolean): Promise<Result> {
 }
 
 function Field({ q, value, onChange, meta }: { q: Question; value: unknown; onChange: (v: unknown) => void; meta: Meta | null }) {
-  const opts = optionsOf(q, meta);
+  const { t, lang } = useT();
+  const opts = optionsOf(q, meta, lang);
   const id = `q-${q.id}`;
   const label = <label className="label" htmlFor={id}>{q.label}{q.required && <span className="text-gold-dark"> *</span>}</label>;
   const hint = q.help ?? (q.type === "date" ? q.placeholder : undefined);
@@ -120,7 +134,7 @@ function Field({ q, value, onChange, meta }: { q: Question; value: unknown; onCh
           {opts.map((o) => (
             <label key={o.value} className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm">
               <span className="w-14 shrink-0 font-semibold">{o.label}</span>
-              <input type="number" step="0.5" min={0} inputMode="decimal" className="w-full bg-transparent text-right outline-none placeholder:text-muted/60" placeholder="score"
+              <input type="number" step="0.5" min={0} inputMode="decimal" className="w-full bg-transparent text-right outline-none placeholder:text-muted/60" placeholder={t("score")}
                 value={v[o.value] ?? ""} onChange={(e) => {
                   const next = { ...v };
                   if (e.target.value === "") delete next[o.value]; else next[o.value] = Number(e.target.value);
@@ -129,7 +143,7 @@ function Field({ q, value, onChange, meta }: { q: Question; value: unknown; onCh
             </label>
           ))}
         </div>
-        <p className="mt-1.5 text-xs text-muted">Laisse vide les tests que tu n&apos;as pas passés.</p>
+        <p className="mt-1.5 text-xs text-muted">{t("Laissez vide les tests que vous n'avez pas passés.")}</p>
       </div>
     );
   }
@@ -165,7 +179,7 @@ function Field({ q, value, onChange, meta }: { q: Question; value: unknown; onCh
             </div>
           )}
           <select id={id} className="input" value="" onChange={(e) => e.target.value && toggle(e.target.value)}>
-            <option value="">Ajouter un pays…</option>
+            <option value="">{t("Ajouter un pays…")}</option>
             {opts.filter((o) => !list.includes(o.value)).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           {help}
@@ -208,7 +222,7 @@ function Field({ q, value, onChange, meta }: { q: Question; value: unknown; onCh
         {label}
         <select id={id} className="input" value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)}
           autoComplete={q.id === "residence_country" ? "country" : undefined}>
-          <option value="">Choisir…</option>
+          <option value="">{t("Choisir…")}</option>
           {opts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         {help}
@@ -227,6 +241,7 @@ function Field({ q, value, onChange, meta }: { q: Question; value: unknown; onCh
 }
 
 function Questionnaire() {
+  const { t } = useT();
   const { me, ready } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
@@ -239,13 +254,13 @@ function Questionnaire() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getMeta().then(setMeta).catch(() => setError("Le service n'est pas joignable pour le moment. Réessaie dans un instant."));
+    getMeta().then(setMeta).catch(() => setError(t("Le service n'est pas joignable pour le moment. Réessayez dans un instant.")));
     api<{ steps: Step[] }>("/api/questionnaire").then((d) => d.steps?.length && setRemote(d.steps)).catch(() => {});
     try { const saved = localStorage.getItem(STORE); if (saved) setAnswers(JSON.parse(saved)); } catch { /* stockage indisponible */ }
   }, []);
   useEffect(() => { try { localStorage.setItem(STORE, JSON.stringify(answers)); } catch { /* idem */ } }, [answers]);
 
-  const steps = useMemo(() => remote ?? (meta ? localSteps(meta) : []), [remote, meta]);
+  const steps = useMemo(() => translateSteps(remote ?? (meta ? localSteps(meta) : []), t), [remote, meta, t]);
   const current = steps[step];
   const missing = current?.questions.filter((q) => q.required && isEmpty(answers[q.id])) ?? [];
 
@@ -281,7 +296,7 @@ function Questionnaire() {
   }, [meId]);
 
   if (error && !steps.length) return <div className="mx-auto max-w-xl py-16 text-center text-muted">{error}</div>;
-  if (!steps.length) return <div className="mx-auto max-w-xl py-16 text-center text-muted">Chargement…</div>;
+  if (!steps.length) return <div className="mx-auto max-w-xl py-16 text-center text-muted">{t("Chargement…")}</div>;
 
   if (result) return <Results result={result} meta={meta} loggedIn={Boolean(me)} onRestart={() => { setResult(null); setStep(0); }} />;
 
@@ -293,9 +308,9 @@ function Questionnaire() {
         <aside className="relative overflow-hidden rounded-3xl bg-night p-6 text-white">
           <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-mint/25 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -right-16 h-56 w-56 rounded-full bg-gold/20 blur-3xl" />
-          <p className="relative font-mono text-[11px] uppercase tracking-[0.18em] text-[#3ee0a8]">Ton profil · {steps.length} étapes</p>
-          <h1 className="relative mt-3 text-3xl leading-tight text-white">Trouvons tes <span className="accent">bourses.</span></h1>
-          <p className="relative mt-2 text-sm text-white/60">Deux minutes. Tes réponses restent sur cet appareil tant que tu ne crées pas de compte.</p>
+          <p className="relative font-mono text-[11px] uppercase tracking-[0.18em] text-[#3ee0a8]">{t("Votre profil ·")} {steps.length} {t("étapes")}</p>
+          <h1 className="relative mt-3 text-[1.65rem] sm:text-3xl leading-tight text-white">{t("Trouvons vos")} <span className="accent">{t("bourses.")}</span></h1>
+          <p className="relative mt-2 text-sm text-white/60">{t("Deux minutes. Vos réponses restent sur cet appareil tant que vous ne créez pas de compte.")}</p>
           <ol className="relative mt-6 space-y-1">
             {steps.map((s, i) => (
               <li key={s.id}>
@@ -316,8 +331,8 @@ function Questionnaire() {
             <div className="h-full bg-gradient-to-r from-mint to-gold transition-all duration-500" style={{ width: `${(100 * (step + 1)) / steps.length}%` }} />
           </div>
           <div key={current.id} className="animate-step-in">
-            <p className="eyebrow">Étape {step + 1} sur {steps.length}</p>
-            <h2 className="mt-2 text-3xl">{current.title}</h2>
+            <p className="eyebrow">{t("Étape {a} sur {b}", { a: step + 1, b: steps.length })}</p>
+            <h2 className="mt-2 text-[1.65rem] sm:text-3xl">{current.title}</h2>
             {current.subtitle && <p className="mt-1 text-muted">{current.subtitle}</p>}
             <div className="mt-7 space-y-6">
               {current.questions.map((q) => (
@@ -327,25 +342,26 @@ function Questionnaire() {
           </div>
           {error && <p className="mt-4 text-sm text-danger">{error}</p>}
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
-            <button type="button" className="text-sm text-muted hover:text-ink disabled:opacity-0" disabled={step === 0} onClick={() => setStep(step - 1)}>← Retour</button>
+            <button type="button" className="text-sm text-muted hover:text-ink disabled:opacity-0" disabled={step === 0} onClick={() => setStep(step - 1)}>{t("← Retour")}</button>
             <div className="flex items-center gap-3">
-              {missing.length > 0 && <span className="hidden text-xs text-muted sm:inline">Encore : {missing.map((q) => q.label.toLowerCase()).join(", ")}</span>}
+              {missing.length > 0 && <span className="hidden text-xs text-muted sm:inline">{t("Encore :")} {missing.map((q) => q.label.toLowerCase()).join(", ")}</span>}
               <button type="button" className="btn-primary" disabled={missing.length > 0 || busy}
                 onClick={() => (last ? submit() : setStep(step + 1))}>
-                {busy ? "Recherche…" : last ? "Voir mes bourses" : "Continuer"} <Icon name="arrow" />
+                {busy ? "Recherche…" : last ? t("Voir mes bourses") : t("Continuer")} <Icon name="arrow" />
               </button>
             </div>
           </div>
         </section>
       </div>
       {!me && ready && (
-        <p className="mt-6 text-center text-xs text-muted">Déjà un compte ? <button className="font-semibold text-brand hover:underline" onClick={() => router.push("/connexion?next=/mes-bourses")}>Connecte-toi</button> pour voir directement tes scores.</p>
+        <p className="mt-6 text-center text-xs text-muted">{t("Déjà un compte ?")} <button className="font-semibold text-brand hover:underline" onClick={() => router.push("/connexion?next=/mes-bourses")}>{t("Connectez-vous")}</button> {t("pour voir directement vos scores.")}</p>
       )}
     </div>
   );
 }
 
 function Results({ result, meta, loggedIn, onRestart }: { result: Result; meta: Meta | null; loggedIn: boolean; onRestart: () => void }) {
+  const { t } = useT();
   const n = result.total_matches;
   const shown = result.items.slice(0, loggedIn ? 6 : 3);
   return (
@@ -353,27 +369,27 @@ function Results({ result, meta, loggedIn, onRestart }: { result: Result; meta: 
       <div className="relative overflow-hidden rounded-3xl bg-night p-6 text-white sm:p-10">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-mint/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 left-10 h-60 w-60 rounded-full bg-gold/15 blur-3xl" />
-        <p className="relative font-mono text-[11px] uppercase tracking-[0.18em] text-[#3ee0a8]">Ton résultat</p>
-        <h1 className="relative mt-3 max-w-2xl text-3xl leading-tight text-white sm:text-5xl">
-          {n > 0 ? <><span className="text-[#3ee0a8]">{n}</span> bourse{n > 1 ? "s" : ""} correspond{n > 1 ? "ent" : ""} <span className="accent">à ton profil.</span></> : <>Aucune bourse ouverte <span className="accent">pour l&apos;instant.</span></>}
+        <p className="relative font-mono text-[11px] uppercase tracking-[0.18em] text-[#3ee0a8]">{t("Votre résultat")}</p>
+        <h1 className="relative mt-3 max-w-2xl text-[1.65rem] sm:text-3xl leading-tight text-white sm:text-5xl">
+          {n > 0 ? <><span className="text-[#3ee0a8]">{n}</span> {t(n > 1 ? "bourses correspondent" : "bourse correspond")} <span className="accent">{t("à votre profil.")}</span></> : <>{t("Aucune bourse ouverte")} <span className="accent">{t("pour l'instant.")}</span></>}
         </h1>
         <p className="relative mt-3 max-w-xl text-sm text-white/65">
           {loggedIn
-            ? "Ton profil est enregistré. Chaque bourse a maintenant un score de compatibilité et la liste de ce qu'il te manque."
-            : n > 0 ? `Voici ${Math.min(3, n)} d'entre elles. Crée ton compte gratuit pour voir toute la liste, ton score pour chacune et ce qui peut le faire monter.` : "On ajoute de nouvelles bourses chaque semaine. Crée ton compte pour être prévenu dès qu'une bourse te correspond."}
+            ? t("Votre profil est enregistré. Chaque bourse a maintenant un score de compatibilité et la liste de ce qu'il vous manque.")
+            : n > 0 ? `Voici ${Math.min(3, n)} d'entre elles. Créez votre compte gratuit pour voir toute la liste, votre score pour chacune et ce qui peut le faire monter.` : t("De nouvelles bourses sont ajoutées chaque semaine. Créez votre compte pour être prévenu dès qu'une bourse vous correspond.")}
         </p>
-        {result.missing && result.missing.length > 0 && <p className="relative mt-3 text-xs text-white/50">Pour un résultat plus précis, complète : {result.missing.join(", ")}.</p>}
+        {result.missing && result.missing.length > 0 && <p className="relative mt-3 text-xs text-white/50">{t("Pour un résultat plus précis, complétez :")} {result.missing.join(", ")}.</p>}
         <div className="relative mt-6 flex flex-wrap gap-3">
           {loggedIn
-            ? <Link href="/mes-bourses" className="btn-primary">Voir toutes mes bourses et mes scores <Icon name="arrow" /></Link>
-            : <Link href={`/connexion?mode=inscription&next=${encodeURIComponent("/questionnaire?etape=resultats")}`} className="btn-primary">Créer mon compte et voir mes scores <Icon name="arrow" /></Link>}
-          <button type="button" onClick={onRestart} className="btn rounded-full border border-white/15 text-white hover:border-white/40">Modifier mes réponses</button>
+            ? <Link href="/mes-bourses" className="btn-primary">{t("Voir toutes mes bourses et mes scores")} <Icon name="arrow" /></Link>
+            : <Link href={`/connexion?mode=inscription&next=${encodeURIComponent("/questionnaire?etape=resultats")}`} className="btn-primary">{t("Créer mon compte et voir mes scores")} <Icon name="arrow" /></Link>}
+          <button type="button" onClick={onRestart} className="btn rounded-full border border-white/15 text-white hover:border-white/40">{t("Modifier mes réponses")}</button>
         </div>
       </div>
 
       {shown.length > 0 && (
         <section>
-          <p className="eyebrow">{loggedIn ? "Les mieux classées" : "Un aperçu"}</p>
+          <p className="eyebrow">{loggedIn ? t("Les mieux classées") : t("Un aperçu")}</p>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {shown.map((m) => (
               <ScholarshipCard key={m.scholarship.id} s={m.scholarship} meta={meta} loggedIn={loggedIn}
@@ -382,17 +398,17 @@ function Results({ result, meta, loggedIn, onRestart }: { result: Result; meta: 
           </div>
           {!loggedIn && n > 3 && (
             <div className="relative mt-4 overflow-hidden rounded-2xl border border-dashed border-line p-6 text-center">
-              <p className="font-semibold"><Icon name="lock" className="mr-1 inline h-4 w-4 text-brand" />{n - 3} autre{n - 3 > 1 ? "s" : ""} bourse{n - 3 > 1 ? "s" : ""} t&apos;attend{n - 3 > 1 ? "ent" : ""}</p>
-              <p className="mt-1 text-sm text-muted">Visibles avec ton score dès la création de ton compte.</p>
+              <p className="font-semibold"><Icon name="lock" className="mr-1 inline h-4 w-4 text-brand" />{t(n - 3 > 1 ? "{n} autres bourses vous attendent" : "{n} autre bourse vous attend", { n: n - 3 })}</p>
+              <p className="mt-1 text-sm text-muted">{t("Visibles avec votre score dès la création de votre compte.")}</p>
             </div>
           )}
         </section>
       )}
 
       <section>
-        <p className="eyebrow">Et maintenant</p>
-        <h2 className="mt-2 text-3xl">Postule seul, ou fais-toi <span className="accent">accompagner.</span></h2>
-        {result.recommended_offer && <p className="mt-2 text-sm text-muted">D&apos;après tes réponses, la formule <span className="font-semibold text-ink">{result.recommended_offer === "premium" ? "Premium" : "Standard"}</span> te conviendrait.</p>}
+        <p className="eyebrow">{t("Et maintenant")}</p>
+        <h2 className="mt-2 text-[1.65rem] sm:text-3xl">{t("Postulez seul, ou faites-vous")} <span className="accent">{t("accompagner.")}</span></h2>
+        {result.recommended_offer && <p className="mt-2 text-sm text-muted">{t("D'après vos réponses, la formule")} <span className="font-semibold text-ink">{result.recommended_offer === "premium" ? t("Premium") : t("Standard")}</span> {t("vous conviendrait.")}</p>}
         <div className="mt-6"><Offers /></div>
       </section>
     </div>

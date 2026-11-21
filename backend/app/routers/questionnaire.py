@@ -13,10 +13,11 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import offers
+from .. import i18n, offers
 from ..db import get_db
 from ..geo import REGIONS
-from ..matching import SITUATION_LABELS, Criteria, age_on, missing_minimum, rank
+from ..i18n import t
+from ..matching import SITUATION_LABELS, Criteria, age_on, missing_minimum, rank, situation_labels
 from ..models import Profile, Scholarship, User
 from ..schemas import MatchOut
 from ..security import optional_user
@@ -37,62 +38,90 @@ CURRENT_LEVELS = {
 LANGUAGE_LEVELS = {"debutant": "Débutant", "intermediaire": "Intermédiaire (B1-B2)", "courant": "Courant (C1-C2)", "natif": "Langue maternelle"}
 LANGS = {"fr": "Français", "en": "Anglais", "de": "Allemand", "es": "Espagnol", "pt": "Portugais", "ar": "Arabe",
          "zh": "Chinois", "ja": "Japonais", "ko": "Coréen", "ru": "Russe", "it": "Italien", "tr": "Turc"}
+CURRENT_LEVELS_EN = {
+    "lycee": "In secondary school (before the baccalaureate)", "BAC": "High school diploma obtained",
+    "BAC3": "Bachelor's degree obtained or in progress", "BAC5": "Master's degree obtained or in progress",
+    "BAC7": "PhD in progress or obtained",
+}
+LANGUAGE_LEVELS_EN = {"debutant": "Beginner", "intermediaire": "Intermediate (B1-B2)", "courant": "Fluent (C1-C2)", "natif": "Native language"}
+LANGS_EN = {"fr": "French", "en": "English", "de": "German", "es": "Spanish", "pt": "Portuguese", "ar": "Arabic",
+            "zh": "Chinese", "ja": "Japanese", "ko": "Korean", "ru": "Russian", "it": "Italian", "tr": "Turkish"}
 TESTS = ["IELTS", "TOEFL", "DELF", "DALF", "TCF", "TEF", "TestDaF", "HSK", "JLPT", "TOPIK", "Duolingo"]
 
 
 def steps() -> list[dict]:
-    countries = sorted(COUNTRIES.items(), key=lambda kv: kv[1])
+    names = i18n.countries(COUNTRIES)
+    countries = sorted(names.items(), key=lambda kv: kv[1])
+    country_opts = [{"value": c, "label": n} for c, n in countries]
+    domains = i18n.loc(DOMAINS, i18n.DOMAINS_EN)
     return [
         {
-            "id": "identite", "title": "Toi", "subtitle": "Ta nationalité décide de la plupart des bourses ouvertes.",
+            "id": "identite", "title": t("Vous", "About you"),
+            "subtitle": t("Votre nationalité détermine la plupart des bourses ouvertes.",
+                          "Your nationality determines most of the scholarships open to you."),
             "questions": [
-                {"id": "nationalities", "label": "Ta ou tes nationalités", "type": "countries", "required": True,
-                 "options": [{"value": c, "label": n} for c, n in countries]},
-                {"id": "residence_country", "label": "Pays où tu vis aujourd'hui", "type": "country", "required": False,
-                 "options": [{"value": c, "label": n} for c, n in countries]},
-                {"id": "birth_date", "label": "Date de naissance", "type": "date", "required": True,
-                 "placeholder": "Beaucoup de bourses fixent un âge maximum"},
+                {"id": "nationalities", "label": t("Votre ou vos nationalités", "Your nationality or nationalities"), "type": "countries",
+                 "required": True, "options": country_opts},
+                {"id": "residence_country", "label": t("Pays où vous vivez aujourd'hui", "Country where you live today"), "type": "country",
+                 "required": False, "options": country_opts},
+                {"id": "birth_date", "label": t("Date de naissance", "Date of birth"), "type": "date", "required": True,
+                 "placeholder": t("Beaucoup de bourses fixent un âge maximum", "Many scholarships set a maximum age")},
             ],
         },
         {
-            "id": "etudes", "title": "Tes études", "subtitle": "Où tu en es et ce que tu veux financer.",
+            "id": "etudes", "title": t("Vos études", "Your studies"),
+            "subtitle": t("Où vous en êtes et ce que vous souhaitez financer.", "Where you are now and what you would like to fund."),
             "questions": [
-                {"id": "current_level", "label": "Ton niveau actuel", "type": "select", "required": True, "options": _opts(CURRENT_LEVELS)},
-                {"id": "target_level", "label": "Le diplôme que tu veux financer", "type": "select", "required": True, "options": _opts(LEVELS)},
-                {"id": "domain", "label": "Ton domaine", "type": "select", "required": True,
-                 "options": _opts({k: v for k, v in DOMAINS.items() if k != "tous"})},
-                {"id": "grade_average", "label": "Ta moyenne sur 20 (dernière année)", "type": "number", "required": False,
-                 "placeholder": "ex. 14,5"},
+                {"id": "current_level", "label": t("Votre niveau actuel", "Your current level"), "type": "select", "required": True,
+                 "options": _opts(i18n.loc(CURRENT_LEVELS, CURRENT_LEVELS_EN))},
+                {"id": "target_level", "label": t("Le diplôme que vous souhaitez financer", "The degree you would like to fund"), "type": "select",
+                 "required": True, "options": _opts(i18n.loc(LEVELS, i18n.LEVELS_EN))},
+                {"id": "domain", "label": t("Votre domaine", "Your field of study"), "type": "select", "required": True,
+                 "options": _opts({k: v for k, v in domains.items() if k != "tous"})},
+                {"id": "grade_average", "label": t("Votre moyenne sur 20 (dernière année)", "Your average out of 20 (last year)"),
+                 "type": "number", "required": False, "placeholder": t("ex. 14,5", "e.g. 14.5")},
             ],
         },
         {
-            "id": "destination", "title": "Ta destination", "subtitle": "Laisse vide pour chercher partout dans le monde.",
+            "id": "destination", "title": t("Votre destination", "Your destination"),
+            "subtitle": t("Laissez vide pour chercher partout dans le monde.", "Leave empty to search worldwide."),
             "questions": [
-                {"id": "wished_regions", "label": "Régions qui t'intéressent", "type": "multiselect", "required": False, "options": _opts(REGIONS)},
-                {"id": "wished_countries", "label": "Pays précis (facultatif)", "type": "countries", "required": False,
-                 "options": [{"value": c, "label": n} for c, n in countries]},
-                {"id": "full_funding_only", "label": "Seulement les bourses complètes (frais, logement, voyage)", "type": "boolean", "required": False},
+                {"id": "wished_regions", "label": t("Régions qui vous intéressent", "Regions you are interested in"), "type": "multiselect",
+                 "required": False, "options": _opts(i18n.loc(REGIONS, i18n.REGIONS_EN))},
+                {"id": "wished_countries", "label": t("Pays précis (facultatif)", "Specific countries (optional)"), "type": "countries",
+                 "required": False, "options": country_opts},
+                {"id": "full_funding_only", "label": t("Seulement les bourses complètes (frais, logement, voyage)",
+                                                       "Fully funded scholarships only (fees, accommodation, travel)"),
+                 "type": "boolean", "required": False},
             ],
         },
         {
-            "id": "langues", "title": "Tes langues", "subtitle": "Un score de test ouvre beaucoup de portes.",
+            "id": "langues", "title": t("Vos langues", "Your languages"),
+            "subtitle": t("Un score de test ouvre beaucoup de portes.", "A test score opens many doors."),
             "questions": [
-                {"id": "languages", "label": "Langues que tu parles", "type": "multiselect", "required": True, "options": _opts(LANGS)},
-                {"id": "language_scores", "label": "Tests de langue passés (score)", "type": "language_scores", "required": False,
-                 "options": [{"value": t, "label": t} for t in TESTS], "placeholder": "ex. IELTS 6,5"},
+                {"id": "languages", "label": t("Langues que vous parlez", "Languages you speak"), "type": "multiselect", "required": True,
+                 "options": _opts(i18n.loc(LANGS, LANGS_EN))},
+                {"id": "language_scores", "label": t("Tests de langue passés (score)", "Language tests taken (score)"), "type": "language_scores",
+                 "required": False, "options": [{"value": x, "label": x} for x in TESTS],
+                 "placeholder": t("ex. IELTS 6,5", "e.g. IELTS 6.5")},
             ],
         },
         {
-            "id": "situation", "title": "Ta situation et ton besoin d'aide", "subtitle": "Pour te montrer les bourses réservées et l'offre qui te convient.",
+            "id": "situation", "title": t("Votre situation et votre besoin d'aide", "Your situation and the support you need"),
+            "subtitle": t("Pour vous montrer les bourses réservées et l'offre qui vous convient.",
+                          "To show you reserved scholarships and the option that suits you."),
             "questions": [
-                {"id": "situations", "label": "Ces situations te concernent-elles ? (facultatif, reste privé)", "type": "multiselect",
-                 "required": False, "options": _opts(SITUATION_LABELS)},
-                {"id": "applications_planned", "label": "À combien de bourses veux-tu postuler ?", "type": "number", "required": False,
-                 "placeholder": "ex. 3"},
-                {"id": "help_preference", "label": "Comment veux-tu postuler ?", "type": "select", "required": True,
-                 "options": _opts(offers.HELP_PREFERENCES)},
-                {"id": "project", "label": "Ton projet en une ou deux phrases", "type": "text", "required": False,
-                 "placeholder": "ex. Devenir ingénieure en énergies renouvelables au Sénégal"},
+                {"id": "situations", "label": t("Ces situations vous concernent-elles ? (facultatif, reste privé)",
+                                                "Do any of these apply to you? (optional, kept private)"), "type": "multiselect",
+                 "required": False, "options": _opts(situation_labels())},
+                {"id": "applications_planned", "label": t("À combien de bourses souhaitez-vous postuler ?",
+                                                          "How many scholarships would you like to apply for?"),
+                 "type": "number", "required": False, "placeholder": t("ex. 3", "e.g. 3")},
+                {"id": "help_preference", "label": t("Comment souhaitez-vous postuler ?", "How would you like to apply?"), "type": "select",
+                 "required": True, "options": _opts(offers.help_preferences())},
+                {"id": "project", "label": t("Votre projet en une ou deux phrases", "Your plan in one or two sentences"), "type": "text",
+                 "required": False, "placeholder": t("ex. Devenir ingénieure en énergies renouvelables au Sénégal",
+                                                     "e.g. Become a renewable energy engineer in Senegal")},
             ],
         },
     ]
@@ -124,9 +153,9 @@ def _clean(a: dict) -> dict:
         try:
             bd = date.fromisoformat(str(a["birth_date"])[:10])
         except ValueError:
-            raise HTTPException(422, "Date de naissance invalide (format AAAA-MM-JJ)")
+            raise HTTPException(422, t("Date de naissance invalide (format AAAA-MM-JJ)", "Invalid date of birth (format YYYY-MM-DD)"))
         if bd > date.today():
-            raise HTTPException(422, "Date de naissance dans le futur")
+            raise HTTPException(422, t("Date de naissance dans le futur", "Date of birth is in the future"))
         out["birth_date"] = bd
     cur = a.get("current_level")
     if cur in LEVELS:
@@ -142,9 +171,9 @@ def _clean(a: dict) -> dict:
         try:
             g = float(str(a["grade_average"]).replace(",", "."))
         except ValueError:
-            raise HTTPException(422, "Moyenne invalide")
+            raise HTTPException(422, t("Moyenne invalide", "Invalid average"))
         if not 0 <= g <= 20:
-            raise HTTPException(422, "La moyenne doit être entre 0 et 20")
+            raise HTTPException(422, t("La moyenne doit être entre 0 et 20", "The average must be between 0 and 20"))
         out["grade_average"] = g
     out["wished_regions"] = [r for r in a.get("wished_regions") or [] if r in REGIONS]
     out["wished_countries"] = [c for c in a.get("wished_countries") or [] if c in COUNTRIES]
@@ -160,14 +189,14 @@ def _clean(a: dict) -> dict:
             if k in TESTS and v not in (None, ""):
                 scores[k] = float(str(v).replace(",", "."))
         except ValueError:
-            raise HTTPException(422, f"Score invalide pour {k}")
+            raise HTTPException(422, t(f"Score invalide pour {k}", f"Invalid score for {k}"))
     out["language_scores"] = scores
     out["situations"] = [x for x in a.get("situations") or [] if x in SITUATION_LABELS]
     if a.get("applications_planned") not in (None, ""):
         try:
             out["applications_planned"] = max(1, min(50, int(a["applications_planned"])))
         except (TypeError, ValueError):
-            raise HTTPException(422, "Nombre de bourses invalide")
+            raise HTTPException(422, t("Nombre de bourses invalide", "Invalid number of scholarships"))
     if a.get("help_preference") in offers.HELP_PREFERENCES:
         out["help_preference"] = a["help_preference"]
     if a.get("project"):

@@ -168,6 +168,18 @@ def run_json(db: Session, source: Source, cfg: dict) -> tuple[int, int]:
     return created, updated
 
 
+def org_from_url(url: str) -> str:
+    """Nom lisible de l'organisme d'après le site officiel : « chevening.org » donne « Chevening »."""
+    from urllib.parse import urlparse
+
+    host = urlparse(url).netloc.lower().split(":")[0]
+    parts = [p for p in host.split(".") if p not in ("www", "en", "fr", "apply", "portal")]
+    if len(parts) < 2:
+        return ""
+    name = parts[-3] if len(parts) >= 3 and parts[-2] in ("ac", "co", "gov", "edu", "org", "gouv") else parts[-2]
+    return name.upper() if len(name) <= 5 else name.replace("-", " ").title()
+
+
 def _crawl_detail_pages(db: Session, source: Source, urls: list[str], fetcher: PoliteFetcher, limit: int,
                         aggregator: bool = False, kind: str | None = None) -> tuple[int, int]:
     """``aggregator`` : site qui relaie des offres (Afri-Carrières, Opportunity Desk…). On garde la page vue
@@ -176,6 +188,9 @@ def _crawl_detail_pages(db: Session, source: Source, urls: list[str], fetcher: P
 
     use_ai = get_settings().ai_enabled
     created = updated = 0
+    if aggregator:  # annonces déjà lues : inutile de les relire (et de repayer l'extraction)
+        known = set(db.scalars(select(Scholarship.source_page).where(Scholarship.source_page.in_(urls))))
+        urls = [u for u in urls if u not in known]
     for url in urls[:limit]:
         try:
             html = fetcher.get(url)
@@ -198,7 +213,7 @@ def _crawl_detail_pages(db: Session, source: Source, urls: list[str], fetcher: P
             if record.get("official_url", url) == url:
                 record["official_url"] = official_link(html, url) or url
             if record.get("organization") == source.name:
-                record["organization"] = "À compléter"
+                record["organization"] = org_from_url(record["official_url"]) or source.name
         if kind and not record.get("kind"):
             record["kind"] = kind
         _, is_new = upsert(db, record, source)
@@ -257,7 +272,10 @@ def run_site(db: Session, source: Source, cfg: dict) -> tuple[int, int]:
     host = urlparse(base).netloc
     links: list[str] = []
     try:
-        for feed in cfg.get("feeds", [base + "/feed/"]):
+        feeds = cfg.get("feeds", [base + "/feed/"])
+        pages = int(cfg.get("feed_pages", 1))
+        feeds = [f if n == 1 else f"{f}{'&' if '?' in f else '?'}paged={n}" for f in feeds for n in range(1, pages + 1)]
+        for feed in feeds:
             try:
                 root = ET.fromstring(fetcher.get(feed))
                 links += [el.text.strip() for el in root.iter() if el.tag.endswith("link") and el.text and el.text.strip().startswith("http")]
@@ -290,7 +308,14 @@ def run_site(db: Session, source: Source, cfg: dict) -> tuple[int, int]:
         fetcher.close()
 
 
-CONNECTORS = {"json": run_json, "rss": run_rss, "page_list": run_page_list, "ai_discovery": run_ai_discovery, "site": run_site}
+def run_reliefweb(db: Session, source: Source, cfg: dict) -> tuple[int, int]:
+    from .reliefweb import run
+
+    return run(db, source, cfg)
+
+
+CONNECTORS = {"json": run_json, "rss": run_rss, "page_list": run_page_list, "ai_discovery": run_ai_discovery, "site": run_site,
+              "reliefweb": run_reliefweb}
 
 
 def load_source_configs() -> list[dict]:
@@ -321,7 +346,7 @@ def run_source(db: Session, name: str) -> str:
         raise ValueError(f"Source inconnue : {name}")
     sync_sources(db)
     src = db.scalars(select(Source).where(Source.name == name)).one()
-    if src.method not in ("manual", "ai") and not cfg.get("path"):
+    if src.method not in ("manual", "ai", "api") and not cfg.get("path"):
         fetcher = PoliteFetcher()
         try:
             src.robots_allowed = fetcher.allowed(src.url)

@@ -167,9 +167,10 @@ EXTRACT_SCHEMA = {
         "deadline": {"type": ["string", "null"]},
         "max_age": {"type": ["integer", "null"]},
         "requirements": {"type": "array", "items": {"type": "string", "enum": ["cv", "lettre", "recommandation", "releves", "test_langue", "projet_recherche", "passeport", "diplome"]}},
+        "target_groups": {"type": "array", "items": {"type": "string", "enum": ["femmes", "refugie", "handicap", "revenus_modestes", "premiere_generation"]}},
     },
     "required": ["is_scholarship", "kind", "official_link", "event_start", "event_end", "city", "remote", "duration",
-                 "eligibility", "application_steps", "title", "organization", "summary", "levels", "study_countries", "eligible_nationalities", "domains", "languages", "amount", "currency", "amount_period", "coverage", "full_funding", "deadline", "max_age", "requirements"],
+                 "eligibility", "application_steps", "title", "organization", "summary", "levels", "study_countries", "eligible_nationalities", "domains", "languages", "amount", "currency", "amount_period", "coverage", "full_funding", "deadline", "max_age", "requirements", "target_groups"],
     "additionalProperties": False,
 }
 
@@ -184,6 +185,9 @@ EXTRACT_SYSTEM = """Tu transformes le texte d'une page web en fiche d'opportunit
 - study_countries, eligible_nationalities : codes ISO alpha-2 ; eligible_nationalities = ["ALL"] si ouvert à tous,
   ou les groupes AFRICA, EU, FRANCOPHONIE, DEVELOPING si la page les cite.
 - deadline : prochaine date limite au format AAAA-MM-JJ, null si absente.
+- study_countries d'un stage : pays où se déroule le stage.
+- target_groups : public réservé si la page le dit (femmes, refugie, handicap, revenus_modestes, premiere_generation), vide sinon.
+- domains : ["tous"] si tous les domaines, sinon les domaines cités (informatique, sante, agriculture…).
 - summary : deux phrases maximum, reformulées avec tes mots (ne recopie pas le texte).
 - N'invente rien : laisse vide ou null ce que la page ne dit pas."""
 

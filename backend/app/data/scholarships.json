@@ -53,7 +53,7 @@
     ],
     "apply_via": "etablissement",
     "eligibility": [
-      "C'est l'établissement français qui présente ta candidature : contacte d'abord le service des relations internationales du master visé."
+      "C'est l'établissement français qui présente votre candidature : contactez d'abord le service des relations internationales du master visé."
     ],
     "kind": "bourse",
     "recurring": true,
@@ -981,7 +981,7 @@
     "title": "Bourse Erasmus+ de mobilité étudiante",
     "organization": "Agence Erasmus+ France",
     "official_url": "https://info.erasmusplus.fr/",
-    "summary": "Aide pour un semestre ou une année d'études dans un autre pays européen pendant ta licence ou ton master, via ton université.",
+    "summary": "Aide pour un semestre ou une année d'études dans un autre pays européen pendant votre licence ou votre master, via votre université.",
     "levels": [
       "BAC3",
       "BAC5"
@@ -3798,7 +3798,7 @@
       "certificat_medical"
     ],
     "eligibility": [
-      "La candidature passe par le ministère ou le service des bourses de ton pays, qui transmet les dossiers à l'AMCI."
+      "La candidature passe par le ministère ou le service des bourses de votre pays, qui transmet les dossiers à l'AMCI."
     ],
     "kind": "bourse",
     "recurring": true,

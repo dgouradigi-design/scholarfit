@@ -33,6 +33,9 @@ def seed() -> None:
     db = SessionLocal()
     try:
         print(run_source(db, "Données d'exemple"))
+        from .translate import load_seed_translations
+
+        print(f"Version anglaise : {load_seed_translations(db)} fiche(s)")
         admin_email = get_settings().admin_email_list[0]
         if not db.scalars(select(User).where(User.email == admin_email)).first():
             db.add(User(email=admin_email, password_hash=hash_password("admin12345"), is_admin=True, profile=Profile()))
@@ -82,7 +85,9 @@ def main() -> None:
     e.add_argument("url")
     sub.add_parser("nightly")
     d = sub.add_parser("discover")
-    d.add_argument("--zones", type=int, default=5, help="nombre de zones du monde à parcourir (20 au total)")
+    d.add_argument("--zones", type=int, default=5, help="nombre de zones du monde à parcourir (46 au total)")
+    tr = sub.add_parser("translate", help="version anglaise des fiches qui n'en ont pas (IA)")
+    tr.add_argument("--limit", type=int, default=500)
     lk = sub.add_parser("check-links")
     lk.add_argument("--all", action="store_true", help="re-teste même les liens vérifiés récemment")
     args = parser.parse_args()
@@ -124,7 +129,11 @@ def main() -> None:
             except RuntimeError as e:
                 print(e)
                 return
-            print(f"{created} nouvelle(s) bourse(s), {updated} mise(s) à jour (statut « à vérifier »)")
+            print(f"{created} nouvelle(s) bourse(s), {updated} mise(s) à jour ")
+        elif args.cmd == "translate":
+            from .translate import load_seed_translations, translate_missing
+
+            print(f"Fiches de départ : {load_seed_translations(db)} ; traduites par l'IA : {translate_missing(db, args.limit)}")
         elif args.cmd == "check-links":
             from .linkcheck import broken, check_links
 

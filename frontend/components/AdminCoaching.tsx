@@ -107,7 +107,7 @@ export default function AdminCoaching({ meta }: { meta: Meta | null }) {
       </div>
 
       <form onSubmit={addAdvisor} className="card grid gap-3 p-5 sm:grid-cols-2">
-        <p className="text-sm text-muted sm:col-span-2">Ajouter un conseiller : la personne crée d&apos;abord son compte, puis tu lui donnes le rôle avec son e-mail.</p>
+        <p className="text-sm text-muted sm:col-span-2">Ajouter un conseiller : la personne crée d&apos;abord son compte, puis vous lui donnez le rôle avec son e-mail.</p>
         <input required type="email" className="input" placeholder="E-mail du compte" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <input required minLength={2} className="input" placeholder="Nom affiché" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
         <textarea className="input sm:col-span-2" rows={2} placeholder="Présentation (parcours, bourses obtenues…)" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />

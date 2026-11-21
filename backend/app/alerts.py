@@ -13,6 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from . import i18n
+from .deadlines import fr_date
+from .details import content
+from .i18n import t
 from .matching import Criteria, missing_minimum, rank
 from .models import Alert, Application, Scholarship, User
 
@@ -45,29 +49,43 @@ def run_alerts(db: Session, today: date | None = None, new_since_days: int = 7) 
     created = 0
     scholarships = list(db.scalars(select(Scholarship).where(Scholarship.status != "expiree")))
     for user in db.scalars(select(User)):
-        # 1. Rappels de date limite pour les candidatures pas encore envoyées
-        for app in user.applications:
-            s = app.scholarship
-            if app.status not in ("a_preparer", "en_cours") or not s.deadline:
-                continue
-            days = (s.deadline - today).days
-            for d in REMINDER_DAYS:
-                if days == d or (d == 1 and days == 0):
-                    created += _add(db, user, f"rappel-{s.id}-J{d}", "rappel",
-                                    f"Plus que {days} jour(s) pour « {s.title} » (date limite le {s.deadline:%d/%m/%Y}).", s.id)
-        # 2. Nouvelles bourses correspondant au profil
-        if user.profile is None:
+        token = i18n.set_lang(user.lang or "fr")  # messages dans la langue choisie sur le site
+        try:
+            created += _user_alerts(db, user, scholarships, today, since)
+        finally:
+            i18n._lang.reset(token)
+    db.commit()
+    return created
+
+
+def _user_alerts(db: Session, user: User, scholarships: list[Scholarship], today: date, since: datetime) -> int:
+    created = 0
+    # 1. Rappels de date limite pour les candidatures pas encore envoyées
+    for app in user.applications:
+        s = app.scholarship
+        if app.status not in ("a_preparer", "en_cours") or not s.deadline:
             continue
+        days = (s.deadline - today).days
+        for d in REMINDER_DAYS:
+            if days == d or (d == 1 and days == 0):
+                title = content(s, "title")
+                created += _add(db, user, f"rappel-{s.id}-J{d}", "rappel",
+                                t(f"Plus que {days} jour(s) pour « {title} » (date limite le {fr_date(s.deadline)}).",
+                                  f"Only {days} day(s) left for \"{title}\" (deadline {fr_date(s.deadline)})."), s.id)
+    # 2. Nouvelles bourses correspondant au profil
+    if user.profile is None:
+        return created
         c = Criteria.from_profile(user.profile, today)
         if missing_minimum(c):
-            continue
+            return created
         fresh = [s for s in scholarships if s.collected_at and _aware(s.collected_at) >= since]
         results, _ = rank(fresh, c, today, limit=10)
         for m in results:
             if m.score >= 60:
+                title = content(m.scholarship, "title")
                 created += _add(db, user, f"nouvelle-{m.scholarship.id}", "nouvelle_bourse",
-                                f"Nouvelle bourse pour toi : « {m.scholarship.title} » (score {m.score}/100).", m.scholarship.id)
-    db.commit()
+                                t(f"Nouvelle bourse pour vous : « {title} » (score {m.score}/100).",
+                                  f"New scholarship for you: \"{title}\" (score {m.score}/100)."), m.scholarship.id)
     return created
 
 

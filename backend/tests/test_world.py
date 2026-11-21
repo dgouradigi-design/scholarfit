@@ -262,3 +262,14 @@ def test_aggregator_site_connector(client, monkeypatch):
     s = client.get("/api/scholarships", params={"kind": "stage", "q": "Banque mondiale 2027"}).json()["items"][0]
     assert s["official_url"] == "https://www.worldbank.org/internship"
     assert client.get("/api/scholarships", params={"q": "comptable"}).json()["total"] == 0
+
+
+def test_country_exact_matches_stats(client):
+    for kind in ("bourse", "stage"):
+        for row in client.get("/api/stats/countries", params={"kind": kind}).json()[:10]:
+            r = client.get("/api/scholarships", params={"country": row["code"], "country_exact": True, "kind": kind}).json()
+            assert r["total"] == row["count"], (kind, row)
+            assert all(row["code"] in i["study_countries"] for i in r["items"])
+    loose = client.get("/api/scholarships", params={"country": "GH", "kind": "bourse"}).json()["total"]
+    exact = client.get("/api/scholarships", params={"country": "GH", "kind": "bourse", "country_exact": True}).json()["total"]
+    assert loose >= exact

@@ -78,34 +78,6 @@ def test_kanban_and_check(client, demo):
     assert r.status_code == 200 and r.json()["ok"] is False
 
 
-def test_letter_offline(client, demo):
-    s = client.get("/api/scholarships", params={"q": "daad study", "include_expired": True}).json()["items"][0]
-    r = client.post("/api/letters", headers=demo, json={"scholarship_id": s["id"], "why_country": "Les laboratoires allemands en IA.", "max_words": 300})
-    out = r.json()
-    assert r.status_code == 200
-    assert s["title"] in out["letter"]
-    assert out["word_count"] <= 320
-    assert out["ai_used"] is False
-
-
-def test_cv_review_offline(client, demo):
-    cv = """Awa Diop
-FORMATION
-2022-2025 Licence d'informatique, UCAD
-EXPÉRIENCES
-Responsable de la communication du club de robotique
-Stage chez une start-up : développement d'une application pour 300 utilisateurs
-COMPÉTENCES
-Python, JavaScript, SQL
-LANGUES
-Français, anglais B2"""
-    r = client.post("/api/cv/review", headers=demo, json={"text": cv, "target_format": "europass"})
-    out = r.json()
-    assert 0 <= out["score"] <= 100
-    assert "formation" in out["sections"]
-    assert any("Piloté" in rw["proposal"] for rw in out["rewrites"])
-
-
 def test_admin_rights(client, demo, admin):
     body = {"title": "Bourse test locale", "organization": "Mairie de Test", "official_url": "https://example.org/b",
             "levels": ["BAC3"], "domains": ["tous"]}

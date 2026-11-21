@@ -15,8 +15,10 @@ Ce dépôt est le **MVP** décrit dans le document de conception du projet. Il t
 | Matching | `/mes-bourses` | 3 passes : filtres durs (niveau, nationalité, âge, date limite, pays, public ciblé), score de 0 à 100 (domaine 30, projet 25, notes et langues 20, pays 15, financement 10), explication « pourquoi / à surveiller ». Score de chance (faible, moyenne, bonne). |
 | Accompagnement | `/accompagnement`, `/conseiller`, `/admin` | Le candidat demande un suivi (objectif, besoins : choix des bourses, CV, lettre, recommandations, entretien, test de langue, visa ; bourses concernées ; langue ; disponibilités) et accepte de partager son dossier. Le conseiller le plus adapté qui a de la place est attribué tout de suite (langue, niveau, domaine, pays, charge), sinon la demande attend dans `/admin`. Un **plan d'étapes daté à rebours** depuis la date limite la plus proche est créé, puis : messages (liés ou non à une candidature), rendez-vous proposés par l'un et confirmés par l'autre avec compte rendu, vue du profil, du CV et des candidatures pour le conseiller, alertes à chaque événement et rappel la veille d'une étape ou d'un rendez-vous. Fin par le conseiller et avis du candidat (1 à 5). Deux offres payantes (Standard 15 000 F CFA, jusqu'à 2 bourses ; Premium 35 000 F CFA, jusqu'à 5 bourses, entretien blanc et visa) ; le candidat peut aussi postuler seul gratuitement. Le paiement (Mobile Money, Wave…) se fait hors plateforme et l'admin le marque reçu. |
 | Suivi Kanban | `/suivi` | Colonnes À préparer, En cours, Envoyée, Résultat (glisser-déposer). Checklist des pièces exigées par chaque bourse, notes, **vérification du dossier** (pièces manquantes, longueur de la lettre, crochets à compléter, test de langue, moyenne). |
-| Amélioration de CV | `/cv` | Diagnostic noté (structure, verbes d'action, résultats chiffrés, longueur, dates, clarté), réécritures ligne par ligne à accepter ou refuser, conseils par format (CV français, Europass, résumé américain, Lebenslauf, CV académique). Version adaptée à une bourse via `/cv?bourse=ID`. |
-| Lettre de motivation | `/lettre/ID` | 4 questions courtes, langue, limite de mots, ton. Brouillon modifiable, avertissements (nombre absent du profil, crochets à compléter, limite dépassée), enregistrement dans le suivi, impression en PDF. |
+| Mon CV | `/cv` | Import du CV (PDF, Word, texte). **Diagnostic sur 9 critères** (coordonnées, rubriques, dates, verbes d'action, résultats mesurables, longueur, langues, lisibilité, adéquation avec la bourse) avec constat, recommandation et trois priorités. **CV adapté** à la bourse : format choisi automatiquement selon le pays d'études (Lebenslauf, Europass, résumé nord-américain, CV britannique, CV français, CV académique pour le doctorat, sinon CV international ATS), langue de la candidature, mots-clés du jury. Aperçu modifiable sur place, téléchargement **PDF** et **Word** (polices libres Carlito et Caladea intégrées). |
+| Lettre de motivation | `/lettre/ID` | En-tête complet tiré du profil (nom, adresse, ville, téléphone, e-mail) et du CV. Réponses facultatives : programme visé, pourquoi ce pays, pourquoi ce programme, plan d'études, projet après les études, réalisation marquante. Disposition française (destinataire à droite, « Lomé, le … », objet, formule de politesse) ou anglophone (britannique ou américaine). Contrôle avant affichage : pas de deux-points dans le corps, pas de tiret cadratin, pas de phrase incomplète, pas de crochets, pas de formule stéréotypée (réécriture automatique si besoin). Aperçu modifiable, téléchargement **PDF** et **Word**. |
+| Préparer ma candidature | `/preparer/ID` | **Compatibilité avant de postuler** : conditions d'accès, pièces du dossier, thèmes valorisés par le jury couverts ou non par le CV, score, verdict et améliorations classées par priorité. |
+| Dossiers CV + lettre | `/cv`, `/lettre/ID`, `/admin` | Un dossier = CV adapté + lettre pour une bourse, 3 générations de chaque. **Le premier est offert, les suivants coûtent 2 500 F CFA** (`DOC_PACK_PRICE`). Paiement Flooz, Mixx by Yas, TapTap Send, LemFi ou PI-SPI vers les numéros affichés ; l'étudiant déclare la référence, l'admin valide dans `/admin` et le dossier est crédité. Le diagnostic et les modifications manuelles restent gratuits. |
 | Alertes | `/mes-bourses` + console | Nouvelles bourses correspondant au profil, rappels J-30, J-7 et J-1 pour les candidatures pas encore envoyées. |
 | Administration | `/admin` | Lancer une source de collecte, tester l'extraction d'une URL, valider les bourses « à vérifier », saisie manuelle, maintenance (expirations et alertes). |
 
@@ -88,13 +90,14 @@ Change ces mots de passe et `SECRET_KEY` avant toute mise en ligne.
 
 ### Ce qui tourne tout seul
 
-Quand l'API est lancée, elle relance la collecte **toutes les 24 heures** (`AUTO_COLLECT_HOURS`, `app/scheduler.py`) :
+Quand l'API est lancée, elle regarde **toutes les 6 heures** (`AUTO_COLLECT_HOURS`, `app/scheduler.py`) quelles sources sont dues, chacune selon sa fréquence (12 h pour les sites et l'IA). Les nouvelles fiches apparaissent sur le site dès qu'elles sont en base :
 
-1. **Sources déclarées** dans `backend/app/data/sources.json` dont la fréquence est écoulée, dont les sites d'annonces **Afri-Carrières, Opportunities For Africans, Opportunity Desk, Scholars4Dev et After School Africa** (connecteur `site`) : flux RSS essayé d'abord, sinon les annonces de la page d'accueil ; les offres d'emploi sont écartées ; le lien gardé est celui du **site officiel** cité dans l'annonce (la page de l'agrégateur reste dans `source_page`) ;
-2. **Découverte par l'IA** (`app/scrapers/discovery.py`) : Claude cherche sur le web les bourses de 5 zones du monde par passage, en tournant sur **24 zones** : 20 pour les bourses sur tous les continents, 2 pour les stages et 2 pour les conférences (Afrique de l'Ouest, centrale, de l'Est, australe et du Nord ; Europe en 6 zones ; Amérique du Nord, Amérique latine, Caraïbes ; Moyen-Orient et Golfe, Asie de l'Est, du Sud-Est, du Sud et centrale ; Océanie ; programmes internationaux). Le monde entier est parcouru en 4 jours, puis on recommence pour trouver les nouvelles bourses et les nouvelles dates. Chaque lien est testé avant enregistrement (un lien mort n'entre pas en base) et chaque fiche arrive **à vérifier** ;
-3. **Dates limites** : une bourse annuelle dont la date vient de passer est signalée « session close » avec la session suivante estimée ; une bourse ponctuelle passe en « expirée » ;
-4. **Vérification des liens officiels** (`app/linkcheck.py`) : `ok`, `redirige` (on garde la nouvelle adresse), `casse` (signalé dans l'administration), `non_verifie` ;
-5. **Alertes** (nouvelles bourses pour le profil, rappels J-30, J-7, J-1) et rappels d'accompagnement.
+1. **Sources déclarées** dans `backend/app/data/sources.json` dont la fréquence est écoulée, dont **12 sites d'annonces** : Afri-Carrières, Opportunities For Africans, Opportunity Desk, Scholars4Dev, After School Africa, Opportunities Circle, Youth Opportunities, Scholarship Positions, World Scholarship Forum, Scholarships Ads, Scholarship Roar, Study Abroad Nations (connecteur `site`). Les 3 premières pages du flux RSS sont lues (sinon les annonces de la page d'accueil), jusqu'à 60 annonces nouvelles par site et par passage ; une annonce déjà lue n'est pas relue ; les offres d'emploi sont écartées ; le lien gardé est celui du **site officiel** cité dans l'annonce (la page de l'agrégateur reste dans `source_page`) ;
+2. **Stages des organisations internationales** via l'API ReliefWeb (ONU OCHA, connecteur `reliefweb`) : tous les stages publiés par les agences de l'ONU, les ONG et les organisations internationales, avec le pays du stage et la date de clôture. Il faut un nom d'application gratuit, à demander sur https://apidoc.reliefweb.int, à mettre dans `RELIEFWEB_APPNAME` ;
+3. **Découverte par l'IA** (`app/scrapers/discovery.py`) : Claude cherche sur le web, 6 zones par passage, deux fois par jour, en tournant sur **46 zones** : les régions du monde (Afrique en 5 zones, Europe en 6, Amériques, Moyen-Orient, Asie, Océanie, programmes internationaux), des pays d'études africains (Ghana, Nigeria, Sénégal, Côte d'Ivoire, Togo, Bénin, Maroc, Égypte, Rwanda, Kenya), les publics (femmes, réfugiés, revenus modestes), les domaines (informatique, santé, agriculture et climat, ingénierie et sciences, droit et économie, arts et journalisme), les niveaux (licence, doctorat et post-doc, écoles d'été), 10 zones de stages (ONU et agences, Banque mondiale, FMI, BAD, BCEAO, Union africaine, CEDEAO, OIF, institutions européennes, ONG, entreprises par continent) et les conférences. Tout est parcouru en 4 jours environ, puis on recommence. Chaque lien est testé avant enregistrement (un lien mort n'entre pas en base). Les fiches réservées à un public (par exemple les femmes) sont marquées comme telles ;
+4. **Dates limites** : une bourse annuelle dont la date vient de passer est signalée « session close » avec la session suivante estimée ; une bourse ponctuelle passe en « expirée » ;
+5. **Vérification des liens officiels** (`app/linkcheck.py`) : `ok`, `redirige` (on garde la nouvelle adresse), `casse` (signalé dans l'administration), `non_verifie` ;
+6. **Alertes** (nouvelles bourses pour le profil, rappels J-30, J-7, J-1) et rappels d'accompagnement.
 
 La découverte IA a besoin de `ANTHROPIC_API_KEY` dans `backend/.env` ; sans clé, le reste tourne quand même. Pour ne pas laisser l'API faire la collecte, mets `AUTO_COLLECT_HOURS=0` et planifie `python -m app.cli nightly` (cron, ou Planificateur de tâches sous Windows).
 
@@ -104,6 +107,7 @@ La découverte IA a besoin de `ANTHROPIC_API_KEY` dans `backend/.env` ; sans cl�
 python -m app.cli nightly                       # un passage complet (sources, IA, dates, liens, alertes)
 python -m app.cli discover --zones 20           # découverte IA sur tout le monde d'un coup
 python -m app.cli check-links --all             # teste tous les liens officiels et liste les liens morts
+python -m app.cli translate                     # version anglaise des fiches qui n'en ont pas (IA)
 python -m app.cli collect                       # toutes les sources activées
 python -m app.cli extract https://exemple.org/une-bourse   # teste l'extraction d'une page
 ```
@@ -115,7 +119,8 @@ python -m app.cli extract https://exemple.org/une-bourse   # teste l'extraction 
 | Connecteur | Usage | Paramètres |
 |---|---|---|
 | `ai_discovery` | Recherche web par l'IA, zone par zone | `zones_per_run`, `frequency_hours` |
-| `site` | Site d'annonces à structure inconnue (agrégateur) | `url`, `limit`, `feeds`, `paths`, `link_pattern`, `kind` |
+| `site` | Site d'annonces à structure inconnue (agrégateur) | `url`, `limit`, `feeds`, `feed_pages`, `paths`, `link_pattern`, `kind` |
+| `reliefweb` | Stages ONU, ONG et organisations internationales (API ReliefWeb) | `limit`, `RELIEFWEB_APPNAME` dans `.env` |
 | `json` | Export officiel, partenariat, fichier local | `path` ou `url` |
 | `rss` | Flux RSS ou Atom dont chaque entrée pointe vers une bourse | `url`, `limit` |
 | `page_list` | Page « liste de bourses » + liens vers les fiches | `url`, `link_selector` (CSS), `link_pattern` (regex), `limit` |
@@ -128,25 +133,39 @@ Règles de collecte (`app/scrapers/base.py`) : lecture de `robots.txt`, une requ
 
 | Route | Rôle |
 |---|---|
-| `GET /api/scholarships` | Filtre `kind` (`bourse`, `stage`, `conference` ; vide = tout), filtres `level`, `country`, `region` (afrique, europe, amerique, asie, oceanie), `domain`, `nationality`, `full_funding`, `deadline_status`, `include_expired`, tri `sort=priority` (urgentes d'abord) |
+| `GET /api/scholarships` | `country_exact=true` : seulement les offres du pays (même total que `/api/stats/countries`). Filtre `kind` (`bourse`, `stage`, `conference` ; vide = tout), filtres `level`, `country`, `region` (afrique, europe, amerique, asie, oceanie), `domain`, `nationality`, `full_funding`, `deadline_status`, `include_expired`, tri `sort=priority` (urgentes d'abord) |
 | `GET /api/scholarships/{id}` | En plus des champs de base : `eligibility_notes` (conditions détaillées), `documents` (pièces à fournir avec précisions), `application_steps` (comment postuler), `apply_url`, `link_status`, `deadline_status` (`urgente` ≤ 14 j, `bientot` ≤ 45 j, `ouverte`, `inconnue`, `expiree`), `priority`, `days_left`, `deadline_label`, `next_expected_deadline`, `regions`, et pour les stages et conférences `kind_label`, `event_start`, `event_end`, `city`, `remote`, `duration`, `source_page` |
 | `GET /api/stats/countries` | Nombre réel de bourses par pays d'études, avec région, latitude et longitude (globe, carrousel) |
 | `GET /api/stats` | Total, ouvertes, bientôt closes, expirées, nombre de pays, répartition par région et par type (`by_kind`) ; `/api/stats/countries` accepte aussi `kind` |
 | `GET /api/matches?kind=stage` | Matching sur un type (bourses par défaut, `tout` pour tout) ; même paramètre sur `POST /api/questionnaire` |
-| `GET /api/questionnaire` / `POST` | Questionnaire de profil en 5 étapes (toi, études, destination, langues, situation et besoin d'aide). Sans compte : nombre de bourses trouvées et 3 aperçus sans score ; avec compte : profil enregistré, toutes les bourses avec score, offre conseillée |
+| `GET /api/questionnaire` / `POST` | Questionnaire de profil en 5 étapes (vous, études, destination, langues, situation et besoin d'aide). Sans compte : nombre de bourses trouvées et 3 aperçus sans score ; avec compte : profil enregistré, toutes les bourses avec score, offre conseillée |
 | `GET /api/offres` | Postuler seul (gratuit), Standard (15 000 F CFA), Premium (35 000 F CFA), avec l'offre conseillée selon le profil. Prix réglables (`OFFER_STANDARD_PRICE`, `OFFER_PREMIUM_PRICE`) |
 | `POST /api/accompagnement` | Accepte `offer` (`standard` ou `premium`) ; prix figé et statut de paiement |
 | `PATCH /api/admin/accompagnement/{id}/paiement` | L'admin marque le paiement reçu |
 | `POST /api/admin/liens/verifier`, `GET /api/admin/liens/casses` | Vérifier les liens, lister les liens morts |
 | `GET /api/auth/email-disponible` | Prévenir dès la saisie qu'un compte existe déjà. Mot de passe : 8 caractères minimum avec une lettre et un chiffre |
 
+### Version anglaise
+
+Toutes les routes répondent en anglais avec `?lang=en` ou le cookie `sf_lang=en` ; sans l'un ni l'autre, rien ne change (français). Sont traduits : titre, résumé, conditions (`eligibility_notes`), pièces (`documents`), étapes (`application_steps`), `deadline_label`, `kind_label`, raisons et points à surveiller du matching, `/api/meta` (niveaux, domaines, régions, pays, couverture, pièces), `/api/questionnaire`, `/api/offres`, l'assistant `/api/chat` (qui comprend aussi les messages en anglais) et les alertes (dans la langue retenue pour le compte).
+
+Les 98 fiches de départ ont leur version anglaise dans `backend/app/data/scholarships_en.json`, chargée au démarrage. Les nouvelles fiches sont traduites par l'IA à chaque collecte automatique, ou à l'ouverture d'une fiche en anglais, puis gardées en base (`translations`). Pour tout traduire d'un coup : `python -m app.cli translate`.
+
+Côté interface, le bouton **FR / EN** de l'en-tête enregistre le cookie `sf_lang` et recharge la page. Le serveur lit ce cookie (`lib/i18n-server.ts`) et écrit la langue dans `<html lang>` ; le navigateur la lit avec `useT()` (`components/LangProvider.tsx`). Chaque texte de l'interface passe par `t("texte en français")` ; sa version anglaise est dans `frontend/lib/i18n-en.ts` (un texte absent reste en français). Pour ajouter un texte : l'écrire en français dans `t(...)`, puis ajouter la ligne correspondante dans `i18n-en.ts`. Les noms de pays viennent de `Intl.DisplayNames`, les dates et montants suivent la langue choisie.
+
 ## Design
 
-Identité propre : fond d'encre profonde, menthe pour les actions (boutons, score), ambre pour la mise en avant (mots en italique, dates limites). Titres et accents italiques en Fraunces gras, texte et étiquettes en Syne (comme la vidéo de référence).
+Identité propre : fond d'encre profonde, menthe pour les actions (boutons, score), ambre pour la mise en avant (mots en italique, dates limites). Titres en Montserrat, texte en Poppins. Tout le site vouvoie l'utilisateur.
 
 - Accueil : globe terrestre animé (`components/WorldGlobe.tsx`, canvas, se fait tourner à la souris ou au doigt) avec un halo par pays proportionnel au nombre de bourses, carrousel des pays avec les vrais chiffres (`/api/stats/countries`), sections qui apparaissent au défilement (`components/Reveal.tsx`). Les points or qui clignotent sont les pays où il y a des bourses, les points gris les terres sans bourse (légende sous le globe). Les animations s'arrêtent si le système demande moins de mouvement.
 - Connexion et inscription dans une fenêtre par-dessus la page (`components/AuthModal.tsx`, illustration `StudentsIllustration.tsx`) ; `/connexion` reste une vraie page.
-- Dons : section « Soutenir le site » sur l'accueil et page `/soutenir`.
+- Dons : section « Soutenir le site » sur l'accueil et page `/soutenir`. Un clic sur un moyen de paiement (Flooz, Mixx by Yas, carte bancaire, Taptap Send, LemFi, PI-SPI) affiche le numéro et le copie.
+- Carrousel des pays : 4 pays visibles au plus, un pas toutes les 5 secondes ; un clic ouvre `/bourses?country=XX&country_exact=true&kind=bourse`, avec exactement le nombre affiché.
+- Drapeaux des pays (`components/Flag.tsx`, fichiers SVG du paquet libre flag-icons dans `public/flags/`) sur les fiches, la recherche, le carrousel et le bandeau défilant sous les chiffres clés.
+- Stages et conférences : section dédiée sur l'accueil (`components/KindsShowcase.tsx`), lien « Stages » dans le menu, onglets Bourses / Stages / Conférences / Tout en haut de `/bourses`.
+- Petites illustrations animées (`components/Illustrations.tsx`) dans les espaces vides, chiffres qui défilent (`components/CountUp.tsx`).
+- Responsive : vérifié sans débordement de 340 px à 1920 px ; les titres changent de taille selon l'écran, et toute l'échelle se réduit un peu sous 380 px (`globals.css`).
+- Pied de page commun (`components/Footer.tsx`) avec logo et liens, sur le site public et dans l'espace connecté.
 - Comptes : champs compatibles avec le remplissage automatique et les gestionnaires de mots de passe (`autocomplete`), mot de passe suggéré, e-mail déjà utilisé signalé, retour à la page demandée après connexion (`/connexion?next=…`).
 
 - **Sombre par défaut**, avec un bouton soleil / lune dans l'en-tête pour passer en **mode clair**. Le choix est mémorisé dans le navigateur (`localStorage`, clé `bm_theme`) et appliqué avant l'affichage pour éviter un flash.
@@ -157,7 +176,7 @@ Identité propre : fond d'encre profonde, menthe pour les actions (boutons, scor
 
 Le symbole est le logo fourni (deux formes en S, menthe en haut, ambre en bas), redessiné en vectoriel aux couleurs du site. Fichiers dans `frontend/public/brand/` :
 
-- `scholarfit-logo-sombre.svg` et `scholarfit-logo-clair.svg` : symbole + nom en Fraunces, pour fond sombre ou clair (texte vectorisé, aucune police nécessaire) ;
+- `scholarfit-logo-sombre.svg` et `scholarfit-logo-clair.svg` : symbole + nom en Montserrat, pour fond sombre ou clair (texte vectorisé, aucune police nécessaire) ;
 - `scholarfit-symbole.svg` et `scholarfit-symbole-inverse.svg` : symbole seul ;
 - `scholarfit-icone.svg` : icône d'appli sur fond carré sombre.
 
@@ -190,15 +209,15 @@ docker-compose.yml            PostgreSQL + API + site
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q        # 32 tests : API, matching, chat, CV, lettres, admin, accompagnement, monde entier, dates limites, questionnaire, offres, liens, stages et conférences, agrégateurs, IA simulée
+cd backend && python -m pytest -q        # 33 tests : API, matching, chat, CV, lettres, admin, accompagnement, monde entier, dates limites, questionnaire, offres, liens, stages et conférences, agrégateurs, IA simulée
 cd frontend && npm run typecheck && npm run build
 ```
 
 ## Variables d'environnement
 
-Backend (`backend/.env`, voir `.env.example`) : `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`, `ADMIN_EMAILS`, `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` (par défaut `claude-opus-5-5`), `AI_FREE_GENERATIONS_PER_DAY`, `COACHING_AUTO_ASSIGN` (par défaut `true` ; à `false`, chaque demande d'accompagnement attend qu'un administrateur choisisse le conseiller), `SCRAPER_USER_AGENT`, `SCRAPER_MIN_DELAY_SECONDS`, `OFFER_STANDARD_PRICE`, `OFFER_PREMIUM_PRICE`, `AUTO_COLLECT_HOURS` (24 par défaut, 0 pour désactiver), `AI_DISCOVERY_ENABLED`, `AI_DISCOVERY_MAX_SEARCHES`.
+Backend (`backend/.env`, voir `.env.example`) : `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`, `ADMIN_EMAILS`, `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` (par défaut `claude-opus-5-5`), `AI_FREE_GENERATIONS_PER_DAY`, `COACHING_AUTO_ASSIGN` (par défaut `true` ; à `false`, chaque demande d'accompagnement attend qu'un administrateur choisisse le conseiller), `SCRAPER_USER_AGENT`, `SCRAPER_MIN_DELAY_SECONDS`, `OFFER_STANDARD_PRICE`, `OFFER_PREMIUM_PRICE`, `AUTO_COLLECT_HOURS` (6 par défaut, 0 pour désactiver), `RELIEFWEB_APPNAME`, `AI_DISCOVERY_ENABLED`, `AI_DISCOVERY_MAX_SEARCHES`.
 
-Site (`frontend/.env.local`) : `API_URL_INTERNAL` (adresse de l'API pour le serveur Next.js, `http://127.0.0.1:8000` par défaut) ; `NEXT_PUBLIC_API_URL` seulement si l'API est sur un autre domaine en production (sinon laisser vide) ; `NEXT_PUBLIC_DON_WAVE`, `NEXT_PUBLIC_DON_ORANGE_MONEY`, `NEXT_PUBLIC_DON_LIEN` pour la section « Soutenir le site » (un moyen vide n'est pas affiché).
+Site (`frontend/.env.local`) : `API_URL_INTERNAL` (adresse de l'API pour le serveur Next.js, `http://127.0.0.1:8000` par défaut) ; `NEXT_PUBLIC_API_URL` seulement si l'API est sur un autre domaine en production (sinon laisser vide) . Les numéros de don (Flooz, Mixx by Yas) sont dans `frontend/components/Support.tsx` (constante `NUMBERS`), les logos dans `frontend/public/paiement/`.
 
 ## Ce qui reste à faire (suite du plan)
 

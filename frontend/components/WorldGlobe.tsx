@@ -164,7 +164,7 @@ export default function WorldGlobe({ markers, className = "" }: { markers: Globe
       // Étiquettes des pays les plus fournis, reliées au point par un trait
       labels.sort((a, b) => b.m.count - a.m.count);
       const placed: { x: number; y: number }[] = [];
-      ctx.font = `600 ${Math.max(11, R / 24)}px "Syne", system-ui, sans-serif`;
+      ctx.font = `600 ${Math.max(11, R / 24)}px "Poppins", system-ui, sans-serif`;
       for (const l of labels) {
         if (placed.length >= 5 || l.z < 0.45) continue;
         const left = l.x > cx + R * 0.2;

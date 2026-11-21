@@ -68,6 +68,9 @@ class Scholarship(Base):
     apply_via: Mapped[str] = mapped_column(String(20), default="direct")  # direct | universite | ambassade | etablissement | nomination
     application_steps: Mapped[list] = mapped_column(JSON, default=list)  # étapes propres ; vide = étapes générées
     apply_url: Mapped[str | None] = mapped_column(String(500), nullable=True)  # portail de candidature si différent
+    # Versions traduites des champs rédigés : {"en": {"title", "summary", "eligibility", "application_steps",
+    # "documents_detail", "extra_documents", "duration", "hash"}} (voir app/translate.py)
+    translations: Mapped[dict] = mapped_column(JSON, default=dict)
 
     # Vérification du lien officiel (app/linkcheck.py)
     link_status: Mapped[str] = mapped_column(String(20), default="non_verifie")  # ok | redirige | casse | non_verifie
@@ -102,6 +105,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(300))
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    lang: Mapped[str] = mapped_column(String(2), default="fr")  # langue choisie sur le site (alertes, e-mails)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     profile: Mapped["Profile"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -110,6 +114,8 @@ class User(Base):
     alerts: Mapped[list["Alert"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     advisor: Mapped["Advisor | None"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
     coachings: Mapped[list["Coaching"]] = relationship(back_populates="student", cascade="all, delete-orphan")
+    doc_packs: Mapped[list["DocPack"]] = relationship(cascade="all, delete-orphan")
+    credit_orders: Mapped[list["CreditOrder"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     @property
     def is_advisor(self) -> bool:
@@ -156,6 +162,12 @@ class Profile(Base):
     situations: Mapped[list] = mapped_column(JSON, default=list)  # refugie, handicap, revenus_modestes, premiere_generation, femmes
 
     cv_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # En-tête des CV et lettres
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    links: Mapped[str | None] = mapped_column(String(300), nullable=True)  # LinkedIn, portfolio…
+    # Accords grammaticaux des lettres en français : f | m (vide = tournures neutres)
+    gender: Mapped[str | None] = mapped_column(String(1), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     user: Mapped[User] = relationship(back_populates="profile")
@@ -185,9 +197,12 @@ class Document(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    kind: Mapped[str] = mapped_column(String(30))  # cv_original | cv_ameliore | lettre
+    kind: Mapped[str] = mapped_column(String(30))  # cv_original | cv_ameliore | cv_adapte | lettre
     title: Mapped[str] = mapped_column(String(300))
     content: Mapped[str] = mapped_column(Text)
+    scholarship_id: Mapped[int | None] = mapped_column(ForeignKey("scholarships.id"), nullable=True)
+    data: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # version structurée (CV ou lettre)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="documents")
@@ -340,3 +355,46 @@ class CoachingMeeting(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     coaching: Mapped[Coaching] = relationship(back_populates="meetings")
+
+
+class DocPack(Base):
+    """Un « dossier » : un CV adapté et une lettre pour une bourse donnée.
+
+    Le premier dossier est offert, les suivants s'achètent (DOC_PACK_PRICE, 2 500 F CFA par défaut).
+    Dans un dossier, l'étudiant peut relancer la génération quelques fois (DOC_PACK_REGENERATIONS)
+    et modifier les textes librement.
+    """
+
+    __tablename__ = "doc_packs"
+    __table_args__ = (UniqueConstraint("user_id", "scholarship_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    scholarship_id: Mapped[int | None] = mapped_column(ForeignKey("scholarships.id"), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="offert")  # offert | achat
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("credit_orders.id"), nullable=True)
+    cv_runs: Mapped[int] = mapped_column(Integer, default=0)
+    letter_runs: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    scholarship: Mapped[Scholarship | None] = relationship()
+
+
+class CreditOrder(Base):
+    """Achat d'un dossier supplémentaire, réglé par Mobile Money ou transfert puis validé par un administrateur."""
+
+    __tablename__ = "credit_orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(10), default="XOF")
+    method: Mapped[str] = mapped_column(String(30))  # flooz | mixx | taptap_send | lemfi | pi_spi
+    payer_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    reference: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # en_verification | paye | refuse
+    status: Mapped[str] = mapped_column(String(20), default="en_verification")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="credit_orders")
