@@ -1,0 +1,147 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700&family=Poppins:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+/*
+  Identité ScholarFit : encre profonde, menthe (action) et ambre (mise en avant).
+  Sombre par défaut. Le mode clair redéfinit les mêmes variables sous
+  html[data-theme="light"] : tous les utilitaires suivent sans autre changement.
+  « night » reste sombre dans les deux modes : c'est la couleur des panneaux de score.
+*/
+@theme {
+  --color-paper: #0a1016;
+  --color-card: #111a22;
+  --color-surface: #0e161d;
+  --color-ink: #edf2ef;
+  --color-muted: #8f9ea8;
+  --color-line: #1f2c36;
+  --color-brand: #3ee0a8;
+  --color-brand-dark: #86f2cb;
+  --color-brand-soft: #10281f;
+  --color-mint: #3ee0a8;
+  --color-gold: #ffb547;
+  --color-gold-dark: #ffc979;
+  --color-gold-soft: #2e220e;
+  --color-night: #071017;
+  --color-night-2: #0d1820;
+  --color-night-3: #16232d;
+  --color-ok: #3ee0a8;
+  --color-ok-soft: #10281f;
+  --color-warm: #ff8a5c;
+  --color-warm-soft: #321b10;
+  --color-danger: #ff6b6b;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-accent: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: "Poppins", ui-monospace, Menlo, Consolas, monospace;
+}
+
+html[data-theme="light"] {
+  --color-paper: #f5f6f2;
+  --color-card: #ffffff;
+  --color-surface: #eef1ec;
+  --color-ink: #0d1a20;
+  --color-muted: #5a6a72;
+  --color-line: #e0e6e1;
+  --color-brand: #0b8a62;
+  --color-brand-dark: #076b4b;
+  --color-brand-soft: #e0f5ec;
+  --color-gold: #d98708;
+  --color-gold-dark: #a66300;
+  --color-gold-soft: #fdf0d9;
+  --color-ok: #0b8a62;
+  --color-ok-soft: #e0f5ec;
+  --color-warm: #c2410c;
+  --color-warm-soft: #fdeee3;
+  --color-danger: #c0262d;
+  color-scheme: light;
+}
+
+html { background: var(--color-paper); color: var(--color-ink); color-scheme: dark; }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; background: var(--color-paper); }
+h1, h2, h3 { font-family: var(--font-serif); letter-spacing: -0.02em; font-weight: 700; }
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-mint text-[#04140e] shadow-[0_8px_28px_-10px_rgba(62,224,168,0.75)] hover:brightness-105;
+}
+@utility btn-dark {
+  @apply btn bg-ink text-paper hover:opacity-90;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-card text-ink hover:border-brand/60;
+}
+@utility input {
+  @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/20;
+}
+@utility label {
+  @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted;
+}
+@utility card {
+  @apply rounded-2xl border border-line bg-card;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs text-muted;
+}
+@utility eyebrow {
+  @apply font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-brand;
+}
+@utility accent {
+  @apply font-[family-name:var(--font-accent)] font-semibold italic tracking-[-0.01em] text-gold-dark;
+}
+
+/* Fond quadrillé léger des sections publiques */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 75%);
+}
+
+@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.animate-marquee { animation: marquee 40s linear infinite; }
+.animate-pulse-dot { animation: pulse-dot 2.4s ease-in-out infinite; }
+.animate-float { animation: float-y 6s ease-in-out infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes beat { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.08); } 24% { transform: scale(1); } 36% { transform: scale(1.05); } 48% { transform: scale(1); } }
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+.animate-float-slow { animation: float-y 8s ease-in-out infinite; animation-delay: -2s; }
+.animate-sway { animation: sway 5s ease-in-out infinite; transform-origin: 50% 100%; }
+.animate-beat { animation: beat 2.8s ease-in-out infinite; }
+svg .animate-float, svg .animate-float-slow, svg .animate-sway, svg .animate-beat { transform-box: fill-box; transform-origin: center; }
+svg .animate-sway { transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee, .animate-pulse-dot, .animate-float, .animate-float-slow, .animate-sway, .animate-beat { animation: none; }
+}
+
+@media print {
+  header, footer, aside, button, .no-print { display: none !important; }
+  .print-plain { margin: 0 !important; padding: 0 !important; }
+}
+
+/* Apparition au défilement (composant Reveal) */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+html { scroll-behavior: smooth; }
+.pause-on-hover:hover .animate-marquee { animation-play-state: paused; }
+
+/* Changement d'étape du questionnaire */
+@keyframes step-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+.animate-step-in { animation: step-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) { .animate-step-in { animation: none; } }
+
+/* Fenêtre de connexion */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
+.animate-fade-in { animation: fade-in 0.25s ease both; }
+.animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) { .animate-fade-in, .animate-pop-in { animation: none; } }
+
+/* Petits téléphones : toute l'échelle typographique (en rem) se réduit un peu. */
+@media (max-width: 380px) { html { font-size: 93.75%; } }
+@media (min-width: 1800px) { html { font-size: 106.25%; } }

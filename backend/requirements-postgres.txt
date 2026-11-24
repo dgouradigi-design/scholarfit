@@ -1,0 +1,4 @@
+# Pilote PostgreSQL : seulement pour docker compose ou une base PostgreSQL (inutile avec SQLite).
+# Séparé pour que l'installation locale ne casse pas si aucune roue n'existe pour ta version de Python.
+-r requirements.txt
+psycopg[binary]==3.2.10
